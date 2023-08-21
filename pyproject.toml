@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "donation-whistle"
+version = "0.1.0"
+description = "A Python application to retrieve, clean and visualise data from the UK  Electoral Commission's register of donations to political parties"
+license = "MIT"
+authors = [
+    "Will Thong <will@willthong.com>"
+]
+repository = "https://github.com/willthong/donation-whistle"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+flask = "^2.3"
