@@ -32,6 +32,7 @@ python3 donation_scraper.py
 * [ ] Allow exploration of data (tabular), including with 'sane default' filters
   (central party only; group aliases, including trade unions; exclude public funds)
 * [ ] Allow exploration of data (graphical)
+* [ ] Write and link to a blog post to explain why this project exists
 
 ## Contributing
 
