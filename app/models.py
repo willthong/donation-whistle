@@ -1,66 +1,87 @@
 from datetime import datetime
+from typing import List, Optional
 
 from app import db
 
 
 class DonorType(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    donors = db.relationship("DonorAlias", backref="type", lazy="dynamic")
-    donations = db.relationship("Donation", backref="type", lazy="dynamic")
-    name = db.Column(db.String(25))
+    __tablename__ = "donor_type"
+
+    id: db.Mapped[int] = db.mapped_column(db.Integer, primary_key=True)
+    # Not bidirectional - I don't need to see all the donors from the type record
+    donors: db.Mapped[List["Donor"]] = db.relationship()
+    name = db.mapped_column(db.String(25))
 
 
 class DonorAlias(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.Integer, db.ForeignKey("donor_type.id"))
-    name = db.Column(db.String(100), index=True)
-    last_edited = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    donors = db.relationship("Donor", backref="alias", lazy="dynamic")
-    donations = db.relationship("Donation", backref="donor", lazy="dynamic")
-    ec_donor_id = db.Column(db.Integer)
-    # Would need to add an accounting unit ID to add non-central donations
-    ec_regulated_entity_id = db.Column(db.Integer)
-    postcode = db.Column(db.String(7))
+    __tablename__ = "donor_alias"
+
+    id = db.mapped_column(db.Integer, primary_key=True)
+    name = db.mapped_column(db.String(100), index=True)
+    last_edited = db.mapped_column(db.DateTime, default=datetime.utcnow, index=True)
+    donors: db.Mapped[List["Donor"]] = db.relationship(back_populates="donor_aliases")
 
     def __repr__(self):
         return f"<Donor {self.name}>"
 
 
 class Donor(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    alias = db.Column(db.Integer, db.ForeignKey("donor_alias.id"))
-    name = db.Column(db.String(100), index=True)
+    __tablename__ = "donor"
+
+    id = db.mapped_column(db.Integer, primary_key=True)
+    donor_alias_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_alias.id"))
+    donor_aliases: db.Mapped[List["DonorAlias"]] = db.relationship(back_populates="donors")
+    donor_type_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_type.id"))
+    donations: db.Mapped[List["Donation"]] = db.relationship(back_populates="donor")
+    name = db.mapped_column(db.String(100), index=True)
+    ec_donor_id = db.mapped_column(db.Integer)
+    # Would need to add an accounting unit ID to add non-central donations
+    ec_regulated_entity_id = db.mapped_column(db.Integer)
+    postcode = db.mapped_column(db.String(7))
+    company_registration_number = db.mapped_column(db.Integer)
 
     def __repr__(self):
         return f"<Donor (Backend) {self.name}>"
 
 
 class Recipient(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), index=True)
-    deregistered = db.Column(db.Date)
+    __tablename__ = "recipient"
+
+    id = db.mapped_column(db.Integer, primary_key=True)
+    name = db.mapped_column(db.String(100), index=True)
+    deregistered = db.mapped_column(db.Date)
+    donations: db.Mapped[List["Donation"]] = db.relationship(back_populates="recipient")
 
     def __repr__(self):
         return f"<Recipient {self.name}>"
 
-
-class DonationTypes(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), index=True)
+class DonationType(db.Model):
+    __tablename__ = "donation_type"
+    
+    id = db.mapped_column(db.Integer, primary_key=True)
+    name = db.mapped_column(db.String(100), index=True)
+    # Not bydirectional: I don't need to see all applicable donations from the donation type
+    # record
+    donations: db.Mapped[List["Donation"]] = db.relationship()
 
     def __repr__(self):
         return f"<Donation Type {self.name}>"
 
 
 class Donation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    donor = db.Column(db.Integer, db.ForeignKey("donor_alias.id"))
-    recipient = db.Column(db.Integer, db.ForeignKey("recipient.id"))
-    type = db.Column(db.Integer, db.ForeignKey("donor_type.id"))
-    value = db.Column(db.Float, index=True)
-    date = db.Column(db.Date, index=True)
-    ec_ref = db.Column(db.String(8))
-    is_legacy = db.Column(db.Boolean, index=True)
+    __tablename__ = "donation"
+
+    id = db.mapped_column(db.Integer, primary_key=True)
+    donor_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor.id"))
+    donor: db.Mapped["Donor"] = db.relationship(back_populates="donations")
+    recipient_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("recipient.id"))
+    recipient: db.Mapped["Recipient"] = db.relationship(back_populates="donations")
+    donation_type_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donation_type.id"))
+    value = db.mapped_column(db.Float, index=True)
+    date = db.mapped_column(db.Date, index=True)
+    ec_ref = db.mapped_column(db.String(8))
+    is_legacy = db.mapped_column(db.Boolean, index=True)
 
     def __repr__(self):
         return f"<Donation of £{self.value} from {self.donor.name} to {self.recipient.name} on {self.date}>"
+
