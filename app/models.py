@@ -1,7 +1,10 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
+from werkzeug.security import generate_password_hash, check_password_hash
 
-from app import db
+from flask_login import UserMixin
+
+from app import db, login
 
 
 class DonorType(db.Model):
@@ -30,7 +33,9 @@ class Donor(db.Model):
 
     id = db.mapped_column(db.Integer, primary_key=True)
     donor_alias_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_alias.id"))
-    donor_aliases: db.Mapped[List["DonorAlias"]] = db.relationship(back_populates="donors")
+    donor_aliases: db.Mapped[List["DonorAlias"]] = db.relationship(
+        back_populates="donors"
+    )
     donor_type_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_type.id"))
     donations: db.Mapped[List["Donation"]] = db.relationship(back_populates="donor")
     name = db.mapped_column(db.String(100), index=True)
@@ -55,9 +60,10 @@ class Recipient(db.Model):
     def __repr__(self):
         return f"<Recipient {self.name}>"
 
+
 class DonationType(db.Model):
     __tablename__ = "donation_type"
-    
+
     id = db.mapped_column(db.Integer, primary_key=True)
     name = db.mapped_column(db.String(100), index=True)
     # Not bydirectional: I don't need to see all applicable donations from the donation type
@@ -76,7 +82,9 @@ class Donation(db.Model):
     donor: db.Mapped["Donor"] = db.relationship(back_populates="donations")
     recipient_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("recipient.id"))
     recipient: db.Mapped["Recipient"] = db.relationship(back_populates="donations")
-    donation_type_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donation_type.id"))
+    donation_type_id: db.Mapped[int] = db.mapped_column(
+        db.ForeignKey("donation_type.id")
+    )
     value = db.mapped_column(db.Float, index=True)
     date = db.mapped_column(db.Date, index=True)
     ec_ref = db.mapped_column(db.String(8))
@@ -85,3 +93,29 @@ class Donation(db.Model):
     def __repr__(self):
         return f"<Donation of £{self.value} from {self.donor.name} to {self.recipient.name} on {self.date}>"
 
+
+class User(UserMixin, db.Model):
+    id = db.mapped_column(db.Integer, primary_key=True)
+    username = db.mapped_column(db.String(64), index=True, unique=True)
+    email = db.mapped_column(db.String(120), index=True, unique=True)
+    password_hash = db.mapped_column(db.String(128))
+    # Admins can add other users. Normal users can only add aliases.
+    is_admin = db.mapped_column(db.Boolean, index=True)
+
+    # Preparing for eventual API
+    token = db.Column(db.String(32), index=True, unique=True)
+    token_expiration = db.Column(db.DateTime)
+
+    def __repr__(self):
+        return f"<User {self.username}>"
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+@login.user_loader
+def load_user(id):
+    return User.query.get(int(id))

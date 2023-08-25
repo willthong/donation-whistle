@@ -1,7 +1,76 @@
-from app import app
+from werkzeug.urls import url_parse
+
+from flask import flash, redirect, request, render_template, url_for
+from flask_login import current_user, login_required, login_user, logout_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms.validators import (
+    DataRequired, 
+)
+
+from app import app, db
+from app.models import User
+from app.forms import (
+    LoginForm,
+    RegistrationForm,
+)
+
+class LoginForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
+    remember_me = BooleanField("Remember me")
+    submit = SubmitField("Sign In")
 
 
 @app.route("/")
 @app.route("/index")
 def index():
-    return "Welcome to Donation Whistle!"
+    return render_template("index.html", title="Home")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.execute(db.select(User).where(User.username==form.username.data)).scalar()
+        if user is None or not user.check_password(form.password.data):
+            flash("Invalid username or password")
+            return redirect(url_for("login"))
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get("next")
+        # netloc protects against attacker inserting malicious URL in "next" argument by
+        # ensuring it's a relative rather than absolute URL
+        if not next_page or url_parse(next_page).netloc != "":
+            next_page = url_for("index")
+        return redirect(next_page)
+    return render_template("login.html", title="Log in", form=form)
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("index"))
+
+@app.route("/register", methods=["GET", "POST"])
+@login_required
+def register():
+    if current_user.is_authenticated and not current_user.is_admin:
+        flash("Only admins can create new users")
+        return redirect(url_for("index"))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data, 
+            email=form.email.data,
+            is_admin=form.is_admin.data
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash("New user registered!")
+        # TODO: change this to the admin's users panel
+        return redirect(url_for("login"))
+    return render_template("register.html", title="Register", form=form)
+
+# To protect a function with login, add the @login_required decorator between the
+# @app.route function and the function definition

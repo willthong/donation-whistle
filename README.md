@@ -1,4 +1,4 @@
-# Donation Scraper
+# Donation Whistle
 
 A Python application to retrieve, clean and visualise data from the UK Electoral
 Commission's [register of donations to political
@@ -25,13 +25,15 @@ python3 donation_scraper.py
 
 * [x] Download raw data and save as CSV
 * [x] Fix line break errors
-* [ ] Import raw data into SQLite database using SQLAlchemy, with 'sane defaults'
+* [X] Import raw data into SQLite database using SQLAlchemy, with 'sane defaults'
   (exclude double-reported gifts)
-* [ ] Define aliases
 * [ ] User accounts
+* [ ] Define aliases UI
+* [ ] Simple import UI
 * [ ] Allow exploration of data (tabular), including with 'sane default' filters
   (central party only; group aliases, including trade unions; exclude public funds)
 * [ ] Allow exploration of data (graphical)
+* [ ] Import UI (including async import and progress bar)
 * [ ] Write and link to a blog post to explain why this project exists
 
 ## Contributing
