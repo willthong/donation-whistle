@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+  <h1>Aliases</h1>
+  <p>
+    Every time a political party reports a donation to the Electoral Commission, the
+    Commission simply reports the donation under that name. The Commission does not
+    perform any consolidation between multiple variations of the same donor (eg "Lord
+    David Sainsbury" and "Lord Sainsbury of Turville" would have multiple records), whether
+    between different political parties or to the same political party, so it is
+    hard to establish how much any individual donor has given over time.
+  </p>
+  <p>
+    Below, there are links which will allow you customise how Donation Whistle performs
+    this consolidation. There will be a "New Alias" form to add a name and note to unaliased
+    donors (ie aliases where the donor count is 1) and an "amend alias" form where
+    aliases can be reset (every alias is split back to individual donors) or added to.
+  </p>
+  
+  <h2>Grouped aliases</h2>
+    <ul>
+      {% for alias in grouped_aliases %}
+        <li>{{ alias.name }}, which refers to: TODO: some means of editing this alias. </li>
+          <ul>
+            {% for donor in alias.donors %}
+              <li>{{ donor.name }} </li>
+            {% endfor %}            
+          </ul>
+      {% endfor %}      
+    </ul>
+
+  <h2>Ungrouped aliases</h2>
+    <ul>
+      {% for alias in ungrouped_aliases %}
+        <li>{{ alias.name }} </li>
+      {% endfor %}
+    </ul>
+    Click here to group any of these aliases into new aliases
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

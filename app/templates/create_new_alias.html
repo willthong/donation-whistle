@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+  <h1>Aliases</h1>
+  <p>
+    Every time a political party reports a donation to the Electoral Commission, the
+    Commission simply reports the donation under that name. The Commission does not
+    perform any consolidation between multiple variations of the same donor (eg "Lord
+    David Sainsbury" and "Lord Sainsbury of Turville" would have multiple records), whether
+    between different political parties or to the same political party, so it is
+    hard to establish how much any individual donor has given over time.
+  </p>
+  <p>
+    Below, you can assign aliases so that Donation Whistle will perform this
+    consolidation. There will be a "New Alias" form to add a name and note to unaliased
+    donors (ie aliases where the donor count is 1) and an "amend alias" form where
+    aliases can be reset (every alias is split back to individual donors) or added to.
+  </p>
+  
+  <form action="/aliases" method="post" id="aliasForm">
+    <button type="button" class="btn btn-primary" id="submitButton">
+      Save alias for group of <span id="aliasCount">0</span> donor names
+    </button>
+  </form>
+
+  <div class="list-group">
+    {% for alias in ungrouped_aliases %}
+      <a href="#" class="list-group-item list-group-item-action" data-id="{{alias.id}}">
+        {{ alias.name }} {{ alias.donors }}
+      </a>
+    {% endfor %}
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    const submitButton = document.querySelector(".btn-primary");
+    const selectedAliases = [];
+    const aliases = document.querySelectorAll(".list-group-item");
+    const aliasCount = document.getElementById("aliasCount");
+    
+    aliases.forEach(alias => {
+      alias.addEventListener("click", () => {
+        alias.classList.toggle("active");
+        const aliasId = alias.getAttribute("data-id");
+        if (alias.classList.contains("active")) {
+          selectedAliases.push(aliasId);
+        } else {
+          // Check the selected alias is in the selectedAliases array before trying to remove it
+          const index = selectedAliases.indexOf(aliasId);
+          if (index !== -1) {
+            selectedAliases.splice(index, 1);
+          }
+        }
+        const selectedCount = selectedAliases.length;
+        aliasCount.textContent = selectedCount;
+      });
+    })
+
+    submitButton.addEventListener("click", () => {
+      const queryParams = new URLSearchParams({
+        selected_donors: JSON.stringify(selectedAliases) 
+      });
+      window.location.href = `/new_alias_name?${queryParams}`;
+    })
+  </script>
+{% endblock %}

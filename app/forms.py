@@ -3,7 +3,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 
 from app import db
-from app.models import User
+from app.models import User, DonorAlias
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
@@ -33,3 +33,9 @@ class RegistrationForm(FlaskForm):
         user = db.session.execute(query).scalars().first()
         if user is not None:
             raise ValidationError("That email is taken. Please use a different one.")
+
+class NewAliasName(FlaskForm):
+    alias_name = StringField("New alias name", validators=[DataRequired()])
+    note = StringField("Notes")
+    submit = SubmitField("Save alias")
+    

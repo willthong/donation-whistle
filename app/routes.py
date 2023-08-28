@@ -9,10 +9,11 @@ from wtforms.validators import (
 )
 
 from app import app, db
-from app.models import User
+from app.models import User, DonorAlias, Donor
 from app.forms import (
     LoginForm,
     RegistrationForm,
+    NewAliasName,
 )
 
 class LoginForm(FlaskForm):
@@ -74,3 +75,86 @@ def register():
 
 # To protect a function with login, add the @login_required decorator between the
 # @app.route function and the function definition
+
+@app.route("/aliases", methods=["GET", "POST"])
+def aliases():
+    query = (
+        db.select(DonorAlias).join(DonorAlias.donors).
+        group_by(DonorAlias).
+        having(db.func.count(DonorAlias.donors) > 1).
+        order_by(DonorAlias.name)
+    )
+    grouped_aliases = db.session.scalars(query).all()
+    query = (
+        db.select(DonorAlias).join(DonorAlias.donors).
+        group_by(DonorAlias).
+        having(db.func.count(DonorAlias.donors) == 1).
+        order_by(DonorAlias.name)
+    )
+    print(query)
+    ungrouped_aliases = db.session.scalars(query).all()
+    return render_template(
+        "aliases.html",
+        title="Aliases",
+        grouped_aliases = grouped_aliases,
+        ungrouped_aliases = ungrouped_aliases
+    )
+        
+
+@app.route("/create_new_alias", methods=["GET", "POST"])
+def create_new_alias():
+    query = (
+        db.select(DonorAlias).join(DonorAlias.donors).
+        group_by(DonorAlias).
+        having(db.func.count(DonorAlias.donors) == 1).
+        order_by(DonorAlias.name)
+    )
+    ungrouped_aliases = db.session.scalars(query).all()
+    return render_template(
+        "create_new_alias.html", 
+        title="Create a new alias", 
+        ungrouped_aliases=ungrouped_aliases
+    )
+
+@app.route("/new_alias_name", methods=["GET", "POST"])
+def new_alias_name():
+    form=NewAliasName()
+    selected_donors = []
+    selected_donor_ids = (
+        request.args.get("selected_donors")
+            .replace("\"","")
+            .strip("[]")
+            .split(",")
+    )
+    for id in selected_donor_ids:
+        selected_donors.append(Donor.query.filter_by(donor_alias_id=id).first())
+
+    if form.validate_on_submit():
+        query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
+        alias = db.session.execute(query).scalars().first()
+        if alias:
+            alias = DonorAlias(
+                name = form.alias_name.data,
+                note=form.note.data,
+                donors=selected_donors,
+            )
+            db.session.add(alias)
+            db.session.commit()
+            # TODO: ensure this works with modification
+        else:
+            alias = DonorAlias(
+                name=form.alias_name.data, 
+                note=form.note.data, 
+                donors=selected_donors,
+            )
+            db.session.add(alias)
+            db.session.commit()
+            flash("New donor alias added!")
+        return redirect(url_for("aliases"))
+    return render_template(
+        "new_alias_name.html", 
+        title="New alias creation",
+        selected_donors=selected_donors,
+        form=form
+    )
+

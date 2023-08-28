@@ -27,7 +27,7 @@ python3 donation_scraper.py
 * [x] Fix line break errors
 * [X] Import raw data into SQLite database using SQLAlchemy, with 'sane defaults'
   (exclude double-reported gifts)
-* [ ] User accounts
+* [X] User accounts
 * [ ] Define aliases UI
 * [ ] Simple import UI
 * [ ] Allow exploration of data (tabular), including with 'sane default' filters

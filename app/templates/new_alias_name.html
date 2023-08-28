@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+  <h1>New alias</h1>
+  <p>
+    Here's the donors you wanted to apply an alias to:
+  </p>
+  
+  <ul>
+    {% for donor in selected_donors %}
+      <li> {{ donor.name }} </li>
+    {% endfor %}
+  </ul>
+  <div class="row">
+    <div class="col-md-4">
+      <form action="" method="POST">
+        {{ form.csrf_token }}
+          <p>
+            {{ form.alias_name.label }} {{form.alias_name(size=20) }}
+            {% for error in form.alias_name.errors %}
+              <span style="color: red; font-style: italic">{{ error }}</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.note.label }} {{ form.note(size=20) }}
+        </p>
+        <p> {{ form.submit() }}
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

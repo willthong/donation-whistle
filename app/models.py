@@ -22,7 +22,8 @@ class DonorAlias(db.Model):
     id = db.mapped_column(db.Integer, primary_key=True)
     name = db.mapped_column(db.String(100), index=True)
     last_edited = db.mapped_column(db.DateTime, default=datetime.utcnow, index=True)
-    donors: db.Mapped[List["Donor"]] = db.relationship(back_populates="donor_aliases")
+    note = db.mapped_column(db.String(1000))
+    donors: db.Mapped[List["Donor"]] = db.relationship(back_populates="donor_alias")
 
     def __repr__(self):
         return f"<Donor {self.name}>"
@@ -33,7 +34,7 @@ class Donor(db.Model):
 
     id = db.mapped_column(db.Integer, primary_key=True)
     donor_alias_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_alias.id"))
-    donor_aliases: db.Mapped[List["DonorAlias"]] = db.relationship(
+    donor_alias: db.Mapped[List["DonorAlias"]] = db.relationship(
         back_populates="donors"
     )
     donor_type_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_type.id"))
