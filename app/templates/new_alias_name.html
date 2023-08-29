@@ -1,17 +1,10 @@
 {% extends "base.html" %}
 
 {% block app_content %}
-  <h1>New alias</h1>
+  <h1>Confirm new alias creation?</h1>
   <p>
     TODO: alternative method of naming by dropdown
-    Here's the donors you wanted to apply an alias to:
   </p>
-  
-  <ul>
-    {% for donor in selected_donors %}
-      <li> {{ donor.name }} </li>
-    {% endfor %}
-  </ul>
   <div class="row">
     <div class="col-md-4">
       <form action="" method="POST">
@@ -29,5 +22,22 @@
       </form>
     </div>
   </div>
+  {% for donor in selected_donors %}
+    <h2> {{ donor.name }} </h2>
+    <table class="table">
+      <thead>
+        <th >Recipient</th>
+        <th >Amount</th>
+        <th >Date</th>
+      </thead>
+      {% for donation in donor.donations %}
+        <tr>
+          <td> {{ donation.recipient.name }} </td>
+          <td> £{{ '{:,.2f}'.format(donation.value) }} </td>
+          <td> {{ donation.date.strftime("%-d %B %Y") }} </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endfor %}
 {% endblock %}
 

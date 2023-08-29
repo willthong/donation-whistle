@@ -23,14 +23,19 @@
     </div>
   </div>
 
-  Button to delete alias
-
+  <a href="{{ url_for('delete_alias', id=alias.id) }}">
+    <button type="button" class="btn btn-primary" >
+      Delete alias
+    </button>
+  </a>
+  <br><br>
   <p>
     This alias applies to:
   </p>
 
   {% for donor in alias.donors %}
     <h2> {{ donor.name }} </h2>
+    <p><a href="{{ url_for("remove_alias", alias_id=alias.id, donor_id=donor.id) }}">Remove donor from alias</a></p>
       <table class="table">
       <thead>
         <th scope="col">Recipient</th>
@@ -41,7 +46,9 @@
           <td> {{ donation.recipient.name }} </td>
           <td> £{{ '{:,.2f}'.format(donation.value) }} </td>
           <td> {{ donation.date.strftime("%-d %B %Y") }} </td>
+        </tr>
       {% endfor %}
+      </table>
   {% endfor %}
   
 {% endblock %}

@@ -9,12 +9,12 @@ from wtforms.validators import (
 )
 
 from app import app, db
-from app.models import User, DonorAlias, Donor
+from app.models import User, DonorAlias, Donor, Donation
 from app.forms import (
     LoginForm,
     RegistrationForm,
     NewAliasName,
-    EditAlias,
+    DeleteAlias,
 )
 
 
@@ -130,16 +130,17 @@ def create_new_alias():
     )
 
 
-@app.route("/new_alias_name", methods=["GET", "POST"])
+@app.route("/new_alias", methods=["GET", "POST"])
 @login_required
-def new_alias_name():
+def new_alias():
     form = NewAliasName()
     selected_donors = []
     selected_donor_ids = (
         request.args.get("selected_donors").replace('"', "").strip("[]").split(",")
     )
     for id in selected_donor_ids:
-        selected_donors.append(Donor.query.filter_by(donor_alias_id=id).first())
+        if Donor.query.filter_by(donor_alias_id=id).first():
+            selected_donors.append(Donor.query.filter_by(donor_alias_id=id).first())
 
     if form.validate_on_submit():
         query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
@@ -171,9 +172,9 @@ def new_alias_name():
     )
 
 
-@app.route("/alias_detail/<id>", methods=["GET", "POST"])
+@app.route("/alias/<id>", methods=["GET", "POST"])
 @login_required
-def alias_detail(id):
+def alias(id):
     alias = db.get_or_404(DonorAlias, id)
     title = f"Alias detail: {alias.name}"
     form = NewAliasName()
@@ -184,10 +185,62 @@ def alias_detail(id):
             # Only add a new alias if donors includes a donor with the proposed name, otherwise
             # it'll be orphaning a different donor.
             flash("That alias name is already taken.")
-            return redirect(url_for("alias_detail", id=id))
+            return redirect(url_for("alias", id=id))
         alias.name = form.alias_name.data or None
         alias.note = form.note.data or None
         print(alias)
         db.session.commit()
         flash("Alias updated!")
     return render_template("alias_detail.html", title=title, alias=alias, form=form)
+
+
+@app.route("/alias/delete/<id>", methods=["GET", "POST"])
+@login_required
+def delete_alias(id):
+    alias = db.get_or_404(DonorAlias, id)
+    title = f"Delete alias: {alias.name}?"
+    form = DeleteAlias()
+    if form.validate_on_submit():
+        # Re-create aliases for donors linked to the alias so they are not orphaned
+        for donor in alias.donors:
+            new_alias = DonorAlias(name=donor.name)
+            new_alias.donors.append(donor)
+            db.session.add(new_alias)
+        # No need to delete the alias, because the last donor left will have its own alias
+        db.session.commit()
+        flash(f"Alias {alias.name} deleted!")
+        return redirect(url_for("aliases"))
+    return render_template("alias_delete.html", title=title, alias=alias, form=form)
+
+
+@app.route("/alias/delete/<alias_id>/<donor_id>", methods=["GET", "POST"])
+@login_required
+def remove_alias(alias_id, donor_id):
+    alias = db.get_or_404(DonorAlias, alias_id)
+    donor = db.get_or_404(Donor, donor_id)
+    title = f"Remove {donor.name} from {alias.name}??"
+    form = DeleteAlias()
+    full_delete = True if (alias.name == donor.name) else False
+    if form.validate_on_submit():
+        if full_delete:
+            for donor in alias.donors:
+                new_alias = DonorAlias(name=donor.name)
+                new_alias.donors.append(donor)
+                db.session.add(new_alias)
+            flash(f"{alias.name} deleted!")
+        else:
+            alias.donors.remove(donor)
+            new_alias = DonorAlias(name=donor.name)
+            new_alias.donors.append(donor)
+            db.session.add(new_alias)
+            flash(f"Donor {donor.name} removed from alias {alias.name}!")
+        db.session.commit()
+        return redirect(url_for("aliases"))
+    return render_template(
+        "alias_remove.html",
+        title=title,
+        alias=alias,
+        donor=donor,
+        form=form,
+        full_delete=full_delete,
+    )

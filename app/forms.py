@@ -44,3 +44,6 @@ class EditAlias(FlaskForm):
     note = StringField("Notes")
     submit = SubmitField("Save alias")
     
+class DeleteAlias(FlaskForm):
+    submit = SubmitField("Confirm alias deletion")
+    

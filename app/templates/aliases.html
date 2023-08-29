@@ -11,17 +11,25 @@
     hard to establish how much any individual donor has given over time.
   </p>
   <p>
-    Below, there are links which will allow you customise how Donation Whistle performs
-    this consolidation. There will be a "New Alias" form to add a name and note to unaliased
-    donors (ie aliases where the donor count is 1) and an "amend alias" form where
-    aliases can be reset (every alias is split back to individual donors) or added to.
+    The below buttons will allow you customise how Donation Whistle performs
+    this consolidation. You can click 'New Alias' to add a name and note to unaliased
+    donors, or click on the name of an already-grouped alias to either delete an alias
+    (ie reset the relevant donors back to individual donors) or amend or reset them.
   </p>
+
+  <a href="{{ url_for('create_new_alias') }}">
+    <button type="button" class="btn btn-primary" >
+      Create new alias
+    </button>
+  </a>
+
+  <br><br>
   
   <h2>Grouped aliases</h2>
     <ul>
       {% for alias in grouped_aliases %}
         <li>
-          <a href="{{ url_for("alias_detail", id=alias.id) }}">{{ alias.name }}</a>,
+          <a href="{{ url_for("alias", id=alias.id) }}">{{ alias.name }}</a>,
           which refers to:</li>
           <ul>
             {% for donor in alias.donors %}
@@ -31,7 +39,7 @@
       {% endfor %}      
     </ul>
 
-  <h2>Ungrouped aliases</h2>
+  <h2>Ungrouped donors</h2>
     <ul>
       {% for alias in ungrouped_aliases %}
         <li>{{ alias.name }} </li>
