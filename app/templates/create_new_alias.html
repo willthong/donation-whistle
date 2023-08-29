@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block app_content %}
-  <h1>Aliases</h1>
+  <h1>Create a new alias</h1>
   <p>
     Every time a political party reports a donation to the Electoral Commission, the
     Commission simply reports the donation under that name. The Commission does not
@@ -11,22 +11,25 @@
     hard to establish how much any individual donor has given over time.
   </p>
   <p>
-    Below, you can assign aliases so that Donation Whistle will perform this
-    consolidation. There will be a "New Alias" form to add a name and note to unaliased
-    donors (ie aliases where the donor count is 1) and an "amend alias" form where
-    aliases can be reset (every alias is split back to individual donors) or added to.
+    Below, you can assign aliases to group together any donors who do not currently have
+    an alias. If you need, click this TODO: modify filters.
   </p>
   
   <form action="/aliases" method="post" id="aliasForm">
     <button type="button" class="btn btn-primary" id="submitButton">
       Save alias for group of <span id="aliasCount">0</span> donor names
     </button>
+    <button type="button" class="btn btn-secondary" id="clearButton">
+      Clear selections
+    </button>
   </form>
+
+ <input class="form-control" type="text" id="filterBox" onkeyup="filter_donors()" placeholder="Filter donors...">
 
   <div class="list-group">
     {% for alias in ungrouped_aliases %}
-      <a href="#" class="list-group-item list-group-item-action" data-id="{{alias.id}}">
-        {{ alias.name }} {{ alias.donors }}
+      <a href="#/" class="list-group-item list-group-item-action" data-id="{{alias.id}}">
+        {{ alias.name }} 
       </a>
     {% endfor %}
   </div>
@@ -34,34 +37,66 @@
 
 {% block scripts %}
   <script>
-    const submitButton = document.querySelector(".btn-primary");
+    const submitButton = document.getElementById('submitButton');
+    const clearButton = document.getElementById('clearButton');
     const selectedAliases = [];
-    const aliases = document.querySelectorAll(".list-group-item");
-    const aliasCount = document.getElementById("aliasCount");
+    const aliases = document.querySelectorAll('.list-group-item');
+    const aliasCount = document.getElementById('aliasCount');
     
     aliases.forEach(alias => {
-      alias.addEventListener("click", () => {
-        alias.classList.toggle("active");
-        const aliasId = alias.getAttribute("data-id");
-        if (alias.classList.contains("active")) {
-          selectedAliases.push(aliasId);
-        } else {
-          // Check the selected alias is in the selectedAliases array before trying to remove it
-          const index = selectedAliases.indexOf(aliasId);
-          if (index !== -1) {
-            selectedAliases.splice(index, 1);
+      alias.addEventListener('click', () => {
+        const clickedItem = event.target;
+        if (clickedItem.closest('.list-group')) {
+          alias.classList.toggle("active");
+          const aliasId = alias.getAttribute('data-id');
+          if (alias.classList.contains('active')) {
+            selectedAliases.push(aliasId);
+          } else {
+            // Check the selected alias is in the selectedAliases array before trying to remove it
+            const index = selectedAliases.indexOf(aliasId);
+            if (index !== -1) {
+              selectedAliases.splice(index, 1);
+            }
           }
+          const selectedCount = selectedAliases.length;
+          aliasCount.textContent = selectedCount;
         }
-        const selectedCount = selectedAliases.length;
-        aliasCount.textContent = selectedCount;
       });
     })
 
-    submitButton.addEventListener("click", () => {
+    submitButton.addEventListener('click', () => {
       const queryParams = new URLSearchParams({
         selected_donors: JSON.stringify(selectedAliases) 
       });
       window.location.href = `/new_alias_name?${queryParams}`;
     })
+
+    clearButton.addEventListener('click', () => {
+      const items = document.getElementsByClassName('active')
+      while (items.length > 0) {
+        const item = items[0];
+        items[0].classList.remove('active')
+        const index = selectedAliases.indexOf(item.getAttribute('data-id'));
+        if (index !== -1) {
+          selectedAliases.splice(index, 1);
+        }
+      }
+      const selectedCount = selectedAliases.length;
+      aliasCount.textContent = selectedCount;
+    })
+
+    function filter_donors() {
+      var items = document.getElementsByClassName('list-group-item');
+      var input = document.getElementById('filterBox').value.toUpperCase(); 
+
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].textContent.toUpperCase().indexOf(input) > -1) {
+          items[i].style.display = "";
+        } else {
+          items[i].style.display = "none";
+        }
+      }
+    }
+
   </script>
 {% endblock %}
