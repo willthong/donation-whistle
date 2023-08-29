@@ -12,19 +12,22 @@
   </p>
   <p>
     Below, you can assign aliases to group together any donors who do not currently have
-    an alias. If you need, click this TODO: modify filters.
+    an alias. If you need, click this TODO: modify filters. TODO: a more info view which
+    includes company number and total gifts to each party.
   </p>
   
   <form action="/aliases" method="post" id="aliasForm">
-    <button type="button" class="btn btn-primary" id="submitButton">
-      Save alias for group of <span id="aliasCount">0</span> donor names
+    <button type="button" class="btn btn-inactive" id="submitButton">
+      <span id="submitLabel">
+        Select multiple donors to apply an alias
+      </span>
     </button>
     <button type="button" class="btn btn-secondary" id="clearButton">
       Clear selections
     </button>
   </form>
 
- <input class="form-control" type="text" id="filterBox" onkeyup="filter_donors()" placeholder="Filter donors...">
+ <input class="form-control" type="text" id="filterBox" onkeyup="filterDonors()" placeholder="Filter donors...">
 
   <div class="list-group">
     {% for alias in ungrouped_aliases %}
@@ -41,8 +44,9 @@
     const clearButton = document.getElementById('clearButton');
     const selectedAliases = [];
     const aliases = document.querySelectorAll('.list-group-item');
-    const aliasCount = document.getElementById('aliasCount');
+    const submitLabel = document.getElementById('submitLabel');
     
+    // Script for clicking a list item
     aliases.forEach(alias => {
       alias.addEventListener('click', () => {
         const clickedItem = event.target;
@@ -52,23 +56,25 @@
           if (alias.classList.contains('active')) {
             selectedAliases.push(aliasId);
           } else {
-            // Check the selected alias is in the selectedAliases array before trying to remove it
+            // Check the selected alias is in selectedAliases before trying to remove it
             const index = selectedAliases.indexOf(aliasId);
             if (index !== -1) {
               selectedAliases.splice(index, 1);
             }
           }
-          const selectedCount = selectedAliases.length;
-          aliasCount.textContent = selectedCount;
+          updateSubmitButton();
         }
+      })
       });
-    })
 
+    // Script for clicking the submit button
     submitButton.addEventListener('click', () => {
-      const queryParams = new URLSearchParams({
-        selected_donors: JSON.stringify(selectedAliases) 
-      });
-      window.location.href = `/new_alias_name?${queryParams}`;
+      if (selectedAliases.length > 1) {
+        const queryParams = new URLSearchParams({
+          selected_donors: JSON.stringify(selectedAliases) 
+        });
+        window.location.href = `/new_alias_name?${queryParams}`;
+      }
     })
 
     clearButton.addEventListener('click', () => {
@@ -81,11 +87,10 @@
           selectedAliases.splice(index, 1);
         }
       }
-      const selectedCount = selectedAliases.length;
-      aliasCount.textContent = selectedCount;
+      updateSubmitButton();
     })
 
-    function filter_donors() {
+    function filterDonors() {
       var items = document.getElementsByClassName('list-group-item');
       var input = document.getElementById('filterBox').value.toUpperCase(); 
 
@@ -95,6 +100,21 @@
         } else {
           items[i].style.display = "none";
         }
+      }
+    }
+
+    function updateSubmitButton() {
+      const selectedCount = selectedAliases.length;
+      // Update save button
+      if (selectedCount > 1) {
+        submitLabel.textContent = `Save alias for ${selectedCount} donors`;
+        submitButton.classList.remove('btn-inactive');
+        submitButton.classList.add('btn-primary');
+      }
+      else if (selectedCount <= 1) {
+        submitLabel.textContent = "Select multiple donors to apply an alias";
+        submitButton.classList.remove('btn-primary');
+        submitButton.classList.add('btn-inactive');
       }
     }
 

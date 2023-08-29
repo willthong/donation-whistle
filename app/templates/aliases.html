@@ -20,7 +20,9 @@
   <h2>Grouped aliases</h2>
     <ul>
       {% for alias in grouped_aliases %}
-        <li>{{ alias.name }}, which refers to: TODO: some means of editing this alias. </li>
+        <li>
+          <a href="{{ url_for("alias_detail", id=alias.id) }}">{{ alias.name }}</a>,
+          which refers to:</li>
           <ul>
             {% for donor in alias.donors %}
               <li>{{ donor.name }} </li>

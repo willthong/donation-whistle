@@ -39,3 +39,8 @@ class NewAliasName(FlaskForm):
     note = StringField("Notes")
     submit = SubmitField("Save alias")
     
+class EditAlias(FlaskForm):
+    alias_name = StringField("New alias name", validators=[DataRequired()])
+    note = StringField("Notes")
+    submit = SubmitField("Save alias")
+    

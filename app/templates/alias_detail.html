@@ -1,0 +1,50 @@
+
+{% extends "base.html" %}
+
+{% block app_content %}
+
+  <h1>Alias detail: {{ alias.name }}</h1>
+
+  <div class="row">
+    <div class="col-md-4">
+      <form action="" method="POST">
+        {{ form.csrf_token }}
+          <p>
+            {{ form.alias_name.label }} {{form.alias_name(size=20) }}
+            {% for error in form.alias_name.errors %}
+              <span style="color: red; font-style: italic">{{ error }}</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.note.label }} {{ form.note(size=20) }}
+        </p>
+        <p> {{ form.submit() }}
+      </form>
+    </div>
+  </div>
+
+  Button to delete alias
+
+  <p>
+    This alias applies to:
+  </p>
+
+  {% for donor in alias.donors %}
+    <h2> {{ donor.name }} </h2>
+      <table class="table">
+      <thead>
+        <th scope="col">Recipient</th>
+        <th scope="col">Amount</th>
+        <th scope="col">Date</th>
+      {% for donation in donor.donations %}
+        <tr>
+          <td> {{ donation.recipient.name }} </td>
+          <td> £{{ '{:,.2f}'.format(donation.value) }} </td>
+          <td> {{ donation.date.strftime("%-d %B %Y") }} </td>
+      {% endfor %}
+  {% endfor %}
+  
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
