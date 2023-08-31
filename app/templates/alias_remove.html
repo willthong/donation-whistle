@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h1>Confirm remove donor {{ donor.name }} from {{ alias.name }}?</h1>
+  {% if full_delete %}
+    <p>
+      As {{ alias.name }} is the 'main alias', the only way to remove it is to entirely
+      delete the alias. This will cause the following donors to be listed separately:
+    </p>
+    <ul>
+      {% for donor in alias.donors %}
+        <li> {{ donor.name }} </li>
+      {% endfor %}
+    </ul>
+
+  {% else %}
+    
+    <p>
+      Are you sure you want {{ donor.name }} to be listed separately?
+    </p>
+
+  {% endif %}  
+
+  <div class="row">
+    <div class="col-md-4">
+      <form action="" method="POST">
+        {{ form.csrf_token }}
+        <p> <input type="submit" value="Confirm"> </p>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

@@ -14,6 +14,7 @@ class DonorType(db.Model):
     # Not bidirectional - I don't need to see all the donors from the type record
     donors: db.Mapped[List["Donor"]] = db.relationship()
     name = db.mapped_column(db.String(25))
+    display_name = db.mapped_column(db.String(25))
 
 
 class DonorAlias(db.Model):
@@ -38,6 +39,7 @@ class Donor(db.Model):
         back_populates="donors"
     )
     donor_type_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("donor_type.id"))
+    donor_type: db.Mapped["DonorType"] = db.relationship(back_populates="donors")
     donations: db.Mapped[List["Donation"]] = db.relationship(back_populates="donor")
     name = db.mapped_column(db.String(100), index=True)
     ec_donor_id = db.mapped_column(db.Integer)
@@ -67,7 +69,7 @@ class DonationType(db.Model):
 
     id = db.mapped_column(db.Integer, primary_key=True)
     name = db.mapped_column(db.String(100), index=True)
-    # Not bydirectional: I don't need to see all applicable donations from the donation type
+    # Not bidirectional: I don't need to see all applicable donations from the donation type
     # record
     donations: db.Mapped[List["Donation"]] = db.relationship()
 
@@ -86,6 +88,7 @@ class Donation(db.Model):
     donation_type_id: db.Mapped[int] = db.mapped_column(
         db.ForeignKey("donation_type.id")
     )
+    donation_type: db.Mapped["DonationType"] = db.relationship(back_populates="donations")
     value = db.mapped_column(db.Float, index=True)
     date = db.mapped_column(db.Date, index=True)
     ec_ref = db.mapped_column(db.String(8))
@@ -94,6 +97,18 @@ class Donation(db.Model):
     def __repr__(self):
         return f"<Donation of £{self.value} from {self.donor.name} to {self.recipient.name} on {self.date}>"
 
+    def to_dict(self):
+        """Prepares a dictionary for the API"""
+        return {
+            "donor": self.donor.donor_alias.name,
+            "donor_type": self.donor.donor_type_id,
+            "alias_id": self.donor.donor_alias.id,
+            "recipient": self.recipient.name,
+            "date": self.date,
+            "type": self.donation_type.name,
+            "amount": self.value,
+            "legacy": self.is_legacy,
+        }
 
 class User(UserMixin, db.Model):
     id = db.mapped_column(db.Integer, primary_key=True)

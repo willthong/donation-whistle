@@ -9,7 +9,15 @@ from wtforms.validators import (
 )
 
 from app import app, db
-from app.models import User, DonorAlias, Donor, Donation
+from app.models import (
+    User,
+    DonorAlias,
+    Donor,
+    Donation,
+    Recipient,
+    DonationType,
+    DonorType,
+)
 from app.forms import (
     LoginForm,
     RegistrationForm,
@@ -28,7 +36,65 @@ class LoginForm(FlaskForm):
 @app.route("/")
 @app.route("/index")
 def index():
-    return render_template("index.html", title="Home")
+    query = db.select(Donation).order_by(Donation.date.desc())
+    donations = db.session.scalars(query).all()
+    return render_template("index.html", title="Home", donations=donations)
+
+
+@app.route("/api/data")
+def data():
+    # Search filter
+    query = db.select(Donation).join(Recipient).join(Donor)
+    search = request.args.get("search")
+    if search:
+        # Filter so that either Donation.donor or Donation.recipient or
+        # Donation.amount or Donation.date matches. You must use a
+        # https://docs.sqlalchemy.org/en/20/tutorial/data_select.html#the-where-clause
+        query = query.where(
+            db.or_(
+                Donation.value.ilike(f"%{search}%"),
+                Recipient.name.ilike(f"%{search}%"),
+                Donor.name.ilike(f"%{search}%"),
+            )
+        )
+    total = len(list(db.session.scalars(query)))
+
+    # Sorting
+    sort = request.args.get("sort")
+    if sort:
+        for s in sort.split(","):
+            direction = s[0]
+            criterion = s[1:]
+            if criterion == "type":
+                query = query.join(DonationType)
+            criterion_lookups = {
+                "donor": Donor.name,
+                "donor_type": DonorType.name,
+                "recipient": Recipient.name,
+                "date": Donation.date,
+                "type": DonationType.name,
+                "value": Donation.value,
+            }
+            if criterion in criterion_lookups:
+                criterion = criterion_lookups[criterion]
+            else:
+                criterion = "Donation.date"
+            if direction == "-":
+                query = query.order_by(criterion.desc())
+            else:
+                query = query.order_by(criterion)
+
+    # Pagination
+    start = request.args.get("start", type=int, default=-1)
+    length = request.args.get("length", type=int, default=-1)
+    if start != -1 and length != -1:
+        query = query.offset(start).limit(length)
+
+    # Response
+    return {
+        "data": [donation.to_dict() for donation in db.session.scalars(query)],
+        "total": total,
+    }
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -102,7 +168,6 @@ def aliases():
         .having(db.func.count(DonorAlias.donors) == 1)
         .order_by(DonorAlias.name)
     )
-    print(query)
     ungrouped_aliases = db.session.scalars(query).all()
     return render_template(
         "aliases.html",

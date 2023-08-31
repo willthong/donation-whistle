@@ -1,8 +1,8 @@
-"""Initialise with new backpopulate method
+"""Initial
 
-Revision ID: 48d3a9a40195
+Revision ID: a240e294a405
 Revises: 
-Create Date: 2023-08-24 21:07:39.573522
+Create Date: 2023-08-31 12:22:41.372676
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '48d3a9a40195'
+revision = 'a240e294a405'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,6 +30,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=True),
     sa.Column('last_edited', sa.DateTime(), nullable=True),
+    sa.Column('note', sa.String(length=1000), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('donor_alias', schema=None) as batch_op:
@@ -49,6 +50,22 @@ def upgrade():
     )
     with op.batch_alter_table('recipient', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_recipient_name'), ['name'], unique=False)
+
+    op.create_table('user',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('username', sa.String(length=64), nullable=True),
+    sa.Column('email', sa.String(length=120), nullable=True),
+    sa.Column('password_hash', sa.String(length=128), nullable=True),
+    sa.Column('is_admin', sa.Boolean(), nullable=True),
+    sa.Column('token', sa.String(length=32), nullable=True),
+    sa.Column('token_expiration', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('user', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_user_email'), ['email'], unique=True)
+        batch_op.create_index(batch_op.f('ix_user_is_admin'), ['is_admin'], unique=False)
+        batch_op.create_index(batch_op.f('ix_user_token'), ['token'], unique=True)
+        batch_op.create_index(batch_op.f('ix_user_username'), ['username'], unique=True)
 
     op.create_table('donor',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -100,6 +117,13 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_donor_name'))
 
     op.drop_table('donor')
+    with op.batch_alter_table('user', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_user_username'))
+        batch_op.drop_index(batch_op.f('ix_user_token'))
+        batch_op.drop_index(batch_op.f('ix_user_is_admin'))
+        batch_op.drop_index(batch_op.f('ix_user_email'))
+
+    op.drop_table('user')
     with op.batch_alter_table('recipient', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_recipient_name'))
 

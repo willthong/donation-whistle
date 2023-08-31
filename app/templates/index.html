@@ -1,3 +1,100 @@
 {% extends "base.html" %}
 
-  <h1>Hello {{current_user.username }}!</h1>
+{% block head %}
+  {{ super() }}
+  <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block app_content %}
+  <h1>All donations</h1>
+  <div id="table"></div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module">
+    import {
+      Grid,
+      html
+    } from "https://unpkg.com/gridjs?module";
+    const updateUrl = (prev, query) => {
+      // Check if "?" exists in the prev string. If so, find its position. If that
+      // position is >= 0, append &, otherwise append ?
+      return prev + (prev.indexOf("?") >= 0 ? "&" : "?") + new URLSearchParams(query).toString();
+    };
+    const currencyFormatter = (value) => new Intl.NumberFormat(
+      'en-GB', 
+      { 
+        style: 'currency', 
+        currency: 'GBP', 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }
+    ).format(value);
+    const dateFormatter = (value) => {
+      const timestamp = new Date(value);
+      const day = timestamp.getUTCDate().toString().padStart(2, '0');
+      const month = (timestamp.getUTCMonth() + 1).toString().padStart(2, '0');
+      const year = timestamp.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    const recipientFormatter = (value) => {
+      if (value == "Conservative and Unionist Party") {return "Conservative Party";}
+      if (value == "UK Independence Party (UKIP)") {return "UKIP";}
+      return value;
+    }
+    const donorTypeFormatter = (value) => {
+      if (value == "Limited Liability Partnership") {return "LLP";}
+      return value;
+    }
+    const legacyFormatter = (value) => {
+      return value == "True" ? "✅" : "❌";
+    }
+
+    new Grid({
+      columns: [
+        { id: 'donor', name: 'Donor', formatter: (cell) => html(`${cell}`) },
+        { id: 'donor_type', name: 'Donor Type', formatter: (cell) => donorTypeFormatter(cell)},
+        { id: 'recipient', name: 'Recipient', formatter: (cell) => recipientFormatter(cell) },
+        { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
+        { id: 'type', name: 'Type' },
+        { id: 'amount', name: 'Amount', formatter: (cell) => currencyFormatter(cell) },
+        { id: 'legacy', name: 'Legacy', formatter: (cell) => legacyFormatter(cell) },
+      ],
+      server: {
+        url: '/api/data',
+        then: results => results.data,
+        total: results => results.total,
+      },
+      search: {
+        enabled: true,
+        server: {
+          url: (prev, search) => {
+            return updateUrl(prev, {search});
+          },
+        },
+      },
+      sort: {
+        enabled: true,
+        multiColumn: true,
+        server: {
+          url: (prev, columns) => {
+            const columnIds = ["donor", "donor_type", "recipient", "date", "type", "value"]
+            const sort = columns.map(col => (col.direction === 1 ? '+' : '-') + columnIds[col.index]);
+            return updateUrl(prev, {sort});
+          },
+        },
+      },
+      pagination: {
+        enabled: true,
+        limit: 100,
+        server: {
+          url: (prev, page, limit) => {
+            return updateUrl(prev, {start: page * limit, length: limit})
+          },
+        },
+      },
+      resizable: true,
+    }).render(document.getElementById('table'));
+  </script>
+
+{% endblock %}

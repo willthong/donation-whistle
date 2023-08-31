@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h1>Confirm delete alias: {{ alias.name }}</h1>
+  Are you sure you want to delete this alias? Each of the following donors will be
+  listed separately:
+  <ul>
+    {% for donor in alias.donors %}
+      <li> {{ donor.name }} </li>
+    {% endfor %}
+  </ul>
+
+  <div class="row">
+    <div class="col-md-4">
+      <form action="" method="POST">
+        {{ form.csrf_token }}
+        <p> {{ form.submit() }} </p>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
