@@ -45,16 +45,17 @@ def index():
             for f in request.form.keys()
             if (f.startswith("recipient-") and request.form[f] == "y")
         ]
-        selected_filter = "&recipient_filter=".join(recipient_filter_list)
-        return redirect(url_for("index", filter=selected_filter or None))
-
+        return redirect(
+            url_for(
+                "index",
+                **{"recipient_filter": recipient_filter_list},
+            )
+        )
     # The api_filter parameter will be appended to the API URL by the template
-    if request.args.get("filter"):
-        api_filter = f"?recipient_filter={request.args.get('filter')}"
-    else:
-        api_filter = ""
-
-    return render_template("index.html", title="Home", form=form, api_filter=api_filter)
+    filter_string = request.query_string.decode()
+    return render_template(
+        "index.html", title="Home", form=form, api_filter=filter_string
+    )
 
 
 @app.route("/api/data")
@@ -66,6 +67,7 @@ def data():
     # apply .getlist() rather than looping through as we would a normal dict
     # https://tedboy.github.io/flask/generated/generated/werkzeug.MultiDict.html)
     recipient_filters = request.args.getlist("recipient_filter")
+    print(recipient_filters)
     recipient_filter_statements = []
 
     for filter in recipient_filters:

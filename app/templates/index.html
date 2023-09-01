@@ -15,13 +15,11 @@
     {{ form.submit() }}
   </form>
 
-
   <div id="table"></div>
 {% endblock %}
 
 {% block scripts %}
   <script type="module">
-    // TODO: pre-fill the tickboxes based on the filter in the URL
     import {
       Grid,
       html
@@ -57,6 +55,25 @@
       return value;
     }
 
+    // Adjust tickboxes to match filters in api_filter template variable
+    window.onload = function() {
+      const regex = /recipient_filter=([^&]+)(?:&amp;|$)/g;
+      const recipientFilters = [];
+      let match;
+      while ((match = regex.exec("{{ api_filter }}")) !== null) {
+        recipientFilters.push(match[1]);
+      }
+      if (recipientFilters.length > 0) {
+        for (var filter of recipientFilters) {
+          document.querySelector(`input[name="recipient-${filter}"]`).checked = true;
+        }
+      } else {
+        document.querySelectorAll('input[name^="recipient-"]').forEach(function(checkbox) {
+          checkbox.checked = true;
+        });
+      }
+    };
+
     new Grid({
       columns: [
         { id: 'donor', name: 'Donor', formatter: (cell) => html(`${cell}`) },
@@ -74,7 +91,7 @@
         },
       ],
       server: {
-        url: '/api/data{{ api_filter|safe }}',
+        url: '/api/data?{{ api_filter|safe }}',
         then: results => results.data,
         total: results => results.total,
       },
