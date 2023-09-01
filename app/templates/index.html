@@ -7,11 +7,21 @@
 
 {% block app_content %}
   <h1>All donations</h1>
+  <form action="/" method="POST">
+    {{ form.csrf_token }}
+    {{ form.labour_party.label }} {{ form.labour_party(size=20) }} <br>
+    {{ form.conservative_and_unionist_party.label }} {{ form.conservative_and_unionist_party(size=20) }} <br>
+    {{ form.liberal_democrats.label }} {{ form.liberal_democrats(size=20) }} <br>
+    {{ form.submit() }}
+  </form>
+
+
   <div id="table"></div>
 {% endblock %}
 
 {% block scripts %}
   <script type="module">
+    // TODO: pre-fill the tickboxes based on the filter in the URL
     import {
       Grid,
       html
@@ -46,9 +56,6 @@
       if (value == "Limited Liability Partnership") {return "LLP";}
       return value;
     }
-    const legacyFormatter = (value) => {
-      return value == "True" ? "✅" : "❌";
-    }
 
     new Grid({
       columns: [
@@ -58,10 +65,16 @@
         { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
         { id: 'type', name: 'Type' },
         { id: 'amount', name: 'Amount', formatter: (cell) => currencyFormatter(cell) },
-        { id: 'legacy', name: 'Legacy', formatter: (cell) => legacyFormatter(cell) },
+        { 
+          id: 'legacy', 
+          name: 'Legacy', 
+          formatter: function (cell) { 
+            return cell ? "✅" : "❌";
+          }
+        },
       ],
       server: {
-        url: '/api/data',
+        url: '/api/data{{ api_filter|safe }}',
         then: results => results.data,
         total: results => results.total,
       },

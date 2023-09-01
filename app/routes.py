@@ -1,6 +1,6 @@
 from werkzeug.urls import url_parse
 
-from flask import flash, redirect, request, render_template, url_for
+from flask import flash, redirect, request, render_template, url_for, escape
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
@@ -23,6 +23,7 @@ from app.forms import (
     RegistrationForm,
     NewAliasName,
     DeleteAlias,
+    RecipientFilterForm,
 )
 
 
@@ -33,18 +34,49 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Sign In")
 
 
-@app.route("/")
-@app.route("/index")
+@app.route("/", methods=["GET", "POST"])
+@app.route("/index", methods=["GET", "POST"])
 def index():
-    query = db.select(Donation).order_by(Donation.date.desc())
-    donations = db.session.scalars(query).all()
-    return render_template("index.html", title="Home", donations=donations)
+    form = RecipientFilterForm(prefix="recipient")
+
+    if form.validate_on_submit():
+        recipient_filter_list = [
+            f.replace("recipient-", "")
+            for f in request.form.keys()
+            if (f.startswith("recipient-") and request.form[f] == "y")
+        ]
+        selected_filter = "&recipient_filter=".join(recipient_filter_list)
+        return redirect(url_for("index", filter=selected_filter or None))
+
+    # The api_filter parameter will be appended to the API URL by the template
+    if request.args.get("filter"):
+        api_filter = f"?recipient_filter={request.args.get('filter')}"
+    else:
+        api_filter = ""
+
+    return render_template("index.html", title="Home", form=form, api_filter=api_filter)
 
 
 @app.route("/api/data")
 def data():
-    # Search filter
     query = db.select(Donation).join(Recipient).join(Donor)
+
+    # Filtering
+    # Multiple identically named keys => weird dictionary-like object to which we must
+    # apply .getlist() rather than looping through as we would a normal dict
+    # https://tedboy.github.io/flask/generated/generated/werkzeug.MultiDict.html)
+    recipient_filters = request.args.getlist("recipient_filter")
+    recipient_filter_statements = []
+
+    for filter in recipient_filters:
+        filter = filter.replace("_", " ")
+        filter = db.func.lower(Recipient.name) == filter
+        recipient_filter_statements.append(filter)
+
+    if recipient_filter_statements:
+        query = query.where(db.or_(*recipient_filter_statements))
+
+    # Search filter
     search = request.args.get("search")
     if search:
         # Filter so that either Donation.donor or Donation.recipient or
@@ -70,6 +102,8 @@ def data():
             criterion_lookups = {
                 "donor": Donor.name,
                 "donor_type": DonorType.name,
+                # TODO: check sorting bug for donor_type
+                # TODO: look into disabling sort for some columns
                 "recipient": Recipient.name,
                 "date": Donation.date,
                 "type": DonationType.name,

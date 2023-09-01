@@ -47,3 +47,10 @@ class EditAlias(FlaskForm):
 class DeleteAlias(FlaskForm):
     submit = SubmitField("Confirm alias deletion")
     
+class RecipientFilterForm(FlaskForm):
+    """API rules: filters should be done as field_filter = "criterion", where criterion has been
+    lowercased and underscore-split. Additive (OR) filters only."""
+    labour_party = BooleanField("Labour Party")
+    conservative_and_unionist_party = BooleanField("Conservative Party")
+    liberal_democrats = BooleanField("Liberal Democrats")
+    submit = SubmitField("Apply recipient filters")
