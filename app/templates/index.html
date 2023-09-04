@@ -9,12 +9,51 @@
   <h1>All donations</h1>
   <form action="/" method="POST">
     {{ form.csrf_token }}
-    {{ form.labour_party.label }} {{ form.labour_party(size=20) }} <br>
-    {{ form.conservative_and_unionist_party.label }} {{ form.conservative_and_unionist_party(size=20) }} <br>
-    {{ form.liberal_democrats.label }} {{ form.liberal_democrats(size=20) }} <br>
+    <div class="row">
+      <div class="col">
+        <strong>Recipients</strong><br>
+        {{ form.recipient_labour_party.label }} {{ form.recipient_labour_party(size=20) }} <br>
+        {{ form.recipient_conservative_and_unionist_party.label }} {{ form.recipient_conservative_and_unionist_party(size=20) }} <br>
+        {{ form.recipient_liberal_democrats.label }} {{ form.recipient_liberal_democrats(size=20) }} <br>
+        <strong>Legacy</strong><br>
+        {{ form.is_legacy_true.label }} {{ form.is_legacy_true(size=20) }} <br>
+        {{ form.is_legacy_false.label }} {{ form.is_legacy_false(size=20) }} <br>
+      </div>
+      <div class="col">
+        <strong>Donor types</strong><br>
+        {{ form.donor_type_individual.label }} {{ form.donor_type_individual(size=20) }} <br>
+        {{ form.donor_type_company.label }} {{ form.donor_type_company(size=20) }} <br>
+        {{ form.donor_type_trade_union.label }} {{ form.donor_type_trade_union(size=20) }} <br>
+        {{ form.donor_type_unincorporated_association.label }} {{
+        form.donor_type_unincorporated_association(size=20) }} <br>
+        {{ form.donor_type_other.label }} {{ form.donor_type_other(size=20) }} <br>
+        {{ form.donor_type_building_society.label }} {{ form.donor_type_building_society(size=20) }} <br>
+        {{ form.donor_type_public_fund.label }} {{ form.donor_type_public_fund(size=20) }} <br>
+        {{ form.donor_type_limited_liability_partnership.label }} {{
+        form.donor_type_limited_liability_partnership(size=20) }} <br>
+        {{ form.donor_type_trust.label }} {{ form.donor_type_trust(size=20) }} <br>
+        {{ form.donor_type_friendly_society.label }} {{ form.donor_type_friendly_society(size=20) }} <br>
+        {{ form.donor_type_impermissible_donor.label }} {{ form.donor_type_impermissible_donor(size=20) }} <br>
+        {{ form.donor_type_na.label }} {{ form.donor_type_na(size=20) }} <br>
+        {{ form.donor_type_unidentifiable_donor.label }} {{
+        form.donor_type_unidentifiable_donor(size=20) }} <br>
+      </div>
+      <div class="col">
+        <strong>Donation types</strong><br>
+        {{ form.donation_type_cash.label }} {{ form.donation_type_cash(size=20) }} <br>
+        {{ form.donation_type_non_cash.label }} {{ form.donation_type_non_cash(size=20) }} <br>
+        {{ form.donation_type_visit.label }} {{ form.donation_type_visit(size=20) }} <br>
+        {{ form.donation_type_public_funds.label }} {{ form.donation_type_public_funds(size=20) }} <br>
+        {{ form.donation_type_exempt_trust.label }} {{ form.donation_type_exempt_trust(size=20) }} <br>
+        {{ form.donation_type_permissible_donor_exempt_trust.label }} {{ form.donation_type_permissible_donor_exempt_trust(size=20) }} <br> 
+        {{ form.donation_type_impermissible_donor.label }} {{ form.donation_type_impermissible_donor(size=20) }} <br>
+        {{ form.donation_type_unidentified_donor.label }} {{ form.donation_type_unidentified_donor(size=20) }} <br>
+
+      </div>
+      <div class="col">
+    </div>
     {{ form.submit() }}
   </form>
-
   <div id="table"></div>
 {% endblock %}
 
@@ -48,6 +87,7 @@
     const recipientFormatter = (value) => {
       if (value == "Conservative and Unionist Party") {return "Conservative Party";}
       if (value == "UK Independence Party (UKIP)") {return "UKIP";}
+      if (value == "Scottish National Party (SNP)") {return "SNP";}
       return value;
     }
     const donorTypeFormatter = (value) => {
@@ -57,7 +97,7 @@
 
     // Adjust tickboxes to match filters in api_filter template variable
     window.onload = function() {
-      const regex = /recipient_filter=([^&]+)(?:&amp;|$)/g;
+      const regex = /filter\=([^&]+?)(?:&|$)/g;
       const recipientFilters = [];
       let match;
       while ((match = regex.exec("{{ api_filter }}")) !== null) {
@@ -65,10 +105,10 @@
       }
       if (recipientFilters.length > 0) {
         for (var filter of recipientFilters) {
-          document.querySelector(`input[name="recipient-${filter}"]`).checked = true;
+          document.querySelector(`input[name="${filter}"]`).checked = true;
         }
       } else {
-        document.querySelectorAll('input[name^="recipient-"]').forEach(function(checkbox) {
+        document.querySelectorAll('input').forEach(function(checkbox) {
           checkbox.checked = true;
         });
       }
@@ -80,7 +120,7 @@
         { id: 'donor_type', name: 'Donor Type', formatter: (cell) => donorTypeFormatter(cell)},
         { id: 'recipient', name: 'Recipient', formatter: (cell) => recipientFormatter(cell) },
         { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
-        { id: 'type', name: 'Type' },
+        { id: 'type', name: 'Donation Type' },
         { id: 'amount', name: 'Amount', formatter: (cell) => currencyFormatter(cell) },
         { 
           id: 'legacy', 

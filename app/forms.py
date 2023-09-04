@@ -47,10 +47,34 @@ class EditAlias(FlaskForm):
 class DeleteAlias(FlaskForm):
     submit = SubmitField("Confirm alias deletion")
     
-class RecipientFilterForm(FlaskForm):
-    """API rules: filters should be done as field_filter = "criterion", where criterion has been
-    lowercased and underscore-split. Additive (OR) filters only."""
-    labour_party = BooleanField("Labour Party")
-    conservative_and_unionist_party = BooleanField("Conservative Party")
-    liberal_democrats = BooleanField("Liberal Democrats")
-    submit = SubmitField("Apply recipient filters")
+class FilterForm(FlaskForm):
+    recipient_labour_party = BooleanField("Labour Party")
+    recipient_conservative_and_unionist_party = BooleanField("Conservative Party")
+    recipient_liberal_democrats = BooleanField("Liberal Democrats")
+    recipient_scottish_national_party = BooleanField("SNP")
+    recipient_green_party = BooleanField("Green Party")
+    donor_type_individual = BooleanField("Individual")
+    donor_type_company = BooleanField("Company")
+    donor_type_trade_union = BooleanField("Trade Union")
+    donor_type_unincorporated_association = BooleanField("Unincorporated Association")
+    donor_type_other = BooleanField("Other")
+    donor_type_building_society = BooleanField("Building Society")
+    donor_type_public_fund = BooleanField("Public Fund")
+    donor_type_limited_liability_partnership = BooleanField("LLP")
+    donor_type_trust = BooleanField("Trust")
+    donor_type_friendly_society = BooleanField("Friendly Society")
+    donor_type_impermissible_donor = BooleanField("Impermissible Donor")
+    donor_type_na = BooleanField("N/A")
+    donor_type_unidentifiable_donor = BooleanField("Unidentifiable Donor")
+    donation_type_cash = BooleanField("Cash")
+    donation_type_non_cash = BooleanField("Non Cash")
+    donation_type_visit = BooleanField("Visit")
+    donation_type_public_funds = BooleanField("Public Funds")
+    donation_type_exempt_trust = BooleanField("Exempt Trust")
+    donation_type_permissible_donor_exempt_trust = BooleanField("Permissible Donor Exempt Trust")
+    donation_type_impermissible_donor = BooleanField("Impermissible Donor")
+    donation_type_unidentified_donor = BooleanField("Unidentified Donor")
+    is_legacy_true = BooleanField("Legacy")
+    is_legacy_false = BooleanField("In vitro")
+    submit = SubmitField("Apply filters")
+# TODO: work out how to create an Other field with a hover-over

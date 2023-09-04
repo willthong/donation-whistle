@@ -23,7 +23,7 @@ from app.forms import (
     RegistrationForm,
     NewAliasName,
     DeleteAlias,
-    RecipientFilterForm,
+    FilterForm,
 )
 
 
@@ -37,18 +37,14 @@ class LoginForm(FlaskForm):
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
 def index():
-    form = RecipientFilterForm(prefix="recipient")
+    form = FilterForm()
 
     if form.validate_on_submit():
-        recipient_filter_list = [
-            f.replace("recipient-", "")
-            for f in request.form.keys()
-            if (f.startswith("recipient-") and request.form[f] == "y")
-        ]
+        filter_list = [par for par in request.form.keys() if request.form[par] == "y"]
         return redirect(
             url_for(
                 "index",
-                **{"recipient_filter": recipient_filter_list},
+                filter=filter_list,
             )
         )
     # The api_filter parameter will be appended to the API URL by the template
@@ -58,25 +54,64 @@ def index():
     )
 
 
+def populate_filter_statements(filters, prefix, db_field):
+    output = []
+    for filter in filters:
+        filter = filter.replace(prefix, "")
+        filter = filter.replace("_", " ")
+        filter = db.func.lower(db_field) == filter
+        output.append(filter)
+    return output
+
+
 @app.route("/api/data")
 def data():
-    query = db.select(Donation).join(Recipient).join(Donor)
+    query = db.select(Donation).join(Recipient).join(Donor).join(DonationType)
 
     # Filtering
     # Multiple identically named keys => weird dictionary-like object to which we must
     # apply .getlist() rather than looping through as we would a normal dict
     # https://tedboy.github.io/flask/generated/generated/werkzeug.MultiDict.html)
-    recipient_filters = request.args.getlist("recipient_filter")
-    print(recipient_filters)
-    recipient_filter_statements = []
+    all_filters = request.args.getlist("filter")
 
-    for filter in recipient_filters:
-        filter = filter.replace("_", " ")
-        filter = db.func.lower(Recipient.name) == filter
-        recipient_filter_statements.append(filter)
+    # Populate filter types
+    recipient_filters = []
+    donor_type_filters = []
+    donation_type_filters = []
+    is_legacy_filters = []
+    for filter in all_filters:
+        if filter.startswith("recipient"):
+            recipient_filters.append(filter)
+        if filter.startswith("donor_type"):
+            donor_type_filters.append(filter)
+        if filter.startswith("donation_type"):
+            donation_type_filters.append(filter)
+        if filter.startswith("is_legacy"):
+            is_legacy_filters.append(filter)
+
+    # Each filter bucket is an additional group of ORs added as an AND, so need to be grouped together
+    recipient_filter_statements = populate_filter_statements(
+        recipient_filters, "recipient_", Recipient.name
+    )
+    donor_type_filter_statements = populate_filter_statements(
+        donor_type_filters, "donor_type_", Donor.donor_type_id
+    )
+    donation_type_filter_statements = populate_filter_statements(
+        donation_type_filters, "donation_type_", DonationType.name
+    )
 
     if recipient_filter_statements:
         query = query.where(db.or_(*recipient_filter_statements))
+    if donor_type_filter_statements:
+        query = query.where(db.or_(*donor_type_filter_statements))
+    if donation_type_filter_statements:
+        query = query.where(db.or_(*donation_type_filter_statements))
+    if "is_legacy_false" in is_legacy_filters and "is_legacy_true" in is_legacy_filters:
+        pass
+    elif "is_legacy_false" in is_legacy_filters:
+        query = query.where(Donation.is_legacy == False)
+    elif "is_legacy_true" in is_legacy_filters:
+        query = query.where(Donation.is_legacy == True)
 
     # Search filter
     search = request.args.get("search")
@@ -99,16 +134,10 @@ def data():
         for s in sort.split(","):
             direction = s[0]
             criterion = s[1:]
-            if criterion == "type":
-                query = query.join(DonationType)
             criterion_lookups = {
                 "donor": Donor.name,
-                "donor_type": DonorType.name,
-                # TODO: check sorting bug for donor_type
-                # TODO: look into disabling sort for some columns
                 "recipient": Recipient.name,
                 "date": Donation.date,
-                "type": DonationType.name,
                 "value": Donation.value,
             }
             if criterion in criterion_lookups:
@@ -119,6 +148,7 @@ def data():
                 query = query.order_by(criterion.desc())
             else:
                 query = query.order_by(criterion)
+            # TODO: look into disabling some sorts
 
     # Pagination
     start = request.args.get("start", type=int, default=-1)

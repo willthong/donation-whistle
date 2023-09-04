@@ -69,12 +69,10 @@ class DonationType(db.Model):
 
     id = db.mapped_column(db.Integer, primary_key=True)
     name = db.mapped_column(db.String(100), index=True)
-    # Not bidirectional: I don't need to see all applicable donations from the donation type
-    # record
-    donations: db.Mapped[List["Donation"]] = db.relationship()
+    donations: db.Mapped[List["Donation"]] = db.relationship(back_populates="donation_type")
 
     def __repr__(self):
-        return f"<Donation Type {self.name}>"
+        return f"{self.name}"
 
 
 class Donation(db.Model):
