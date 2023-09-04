@@ -75,9 +75,8 @@ def relevancy_check(record):
     """Returns True if a record is relevant, or False if not"""
     if (
         record["AccountingUnitName"] != "Central Party"
-        or record["DonorStatus"] in ["Public Fund", "Unidentifiable Donor"]
+        or record["DonorStatus"] in ["Unidentifiable Donor"]
         or record["DonationAction"] in ["Returned", "Forfeited"]
-        or record["DonationType"] == "Public Funds"
         or re.search(r"(referendum)|(election)|(poll)", record["ReportingPeriodName"])
     ):
         return False

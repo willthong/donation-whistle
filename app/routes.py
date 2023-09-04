@@ -26,6 +26,24 @@ from app.forms import (
     FilterForm,
 )
 
+OTHER_DONOR_TYPES = [
+    "donor_type_building_society", "donor_type_public_fund", "donor_type_friendly_society",    
+    "donor_type_impermissible_donor", "donor_type_na", "donor_type_unidentifiable_donor"
+]
+OTHER_DONATION_TYPES = [
+    "donation_type_public_funds", "donation_type_exempt_trust", 
+    "donation_type_permissible_donor_exempt_trust", "donation_type_impermissible_donor", 
+    "donation_type_unidentified_donor",
+]
+OTHER_DONATION_TYPES = [
+    "donation_type_public_funds",
+    "donation_type_exempt_trust",
+    "donation_type_permissible_donor_exempt_trust",
+    "donation_type_impermissible_donor",
+    "donation_type_unidentified_donor",
+]
+DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
+
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
@@ -53,6 +71,9 @@ def index():
         )
     # The api_filter parameter will be appended to the API URL by the template
     filter_string = request.query_string.decode()
+    if not filter_string:
+        filter_string = DEFAULT_FILTERS
+    print(filter_string)
     return render_template(
         "index.html", title="Home", form=form, api_filter=filter_string
     )
@@ -61,9 +82,10 @@ def index():
 def populate_filter_statements(filters, prefix, db_field):
     output = []
     for filter in filters:
-        filter = filter.replace(prefix, "")
-        filter = filter.replace("_", " ")
-        filter = db.func.lower(db_field) == filter
+        filter = filter.replace(prefix, "").replace("_", " ").replace("(","").replace(")","")
+        filter = db.func.REPLACE(db.func.REPLACE(db.func.lower(
+            db_field
+        ), "(", ""), ")","") == filter
         output.append(filter)
     return output
 
@@ -89,10 +111,14 @@ def data():
     for filter in all_filters:
         if filter.startswith("recipient"):
             recipient_filters.append(filter)
+        if filter == "donor_type_other":
+            donor_type_filters.extend(OTHER_DONOR_TYPES)
         if filter.startswith("donor_type"):
             donor_type_filters.append(filter)
         if filter.startswith("donation_type"):
             donation_type_filters.append(filter)
+        if filter == "donation_type_other":
+            donation_type_filters.extend(OTHER_DONATION_TYPES)
         if filter.startswith("is_legacy"):
             is_legacy_filters.append(filter)
         if filter.startswith("date_gt_"):
@@ -111,7 +137,18 @@ def data():
         donation_type_filters, "donation_type_", DonationType.name
     )
 
-    if recipient_filter_statements:
+    if recipient_filter_statements and "recipient_other" in all_filters:
+        query = query.where(db.or_(
+            db.not_(db.or_(
+                Recipient.name == "Labour Party",
+                Recipient.name == "Conservative and Unionist Party",
+                Recipient.name == "Liberal Democrats",
+                Recipient.name == "Scottish National Party (SNP)",
+                Recipient.name == "Green Party",
+                Recipient.name == "Reform UK",
+            )),(db.or_(*recipient_filter_statements))
+        ))
+    elif recipient_filter_statements:
         query = query.where(db.or_(*recipient_filter_statements))
     if donor_type_filter_statements:
         query = query.where(db.or_(*donor_type_filter_statements))
