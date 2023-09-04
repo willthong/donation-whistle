@@ -1,3 +1,4 @@
+from datetime import datetime
 from werkzeug.urls import url_parse
 
 from flask import flash, redirect, request, render_template, url_for, escape
@@ -16,7 +17,6 @@ from app.models import (
     Donation,
     Recipient,
     DonationType,
-    DonorType,
 )
 from app.forms import (
     LoginForm,
@@ -41,6 +41,10 @@ def index():
 
     if form.validate_on_submit():
         filter_list = [par for par in request.form.keys() if request.form[par] == "y"]
+        if request.form["date_gt"]:
+            filter_list.append("date_gt_" + request.form["date_gt"])
+        if request.form["date_lt"]:
+            filter_list.append("date_lt_" + request.form["date_lt"])
         return redirect(
             url_for(
                 "index",
@@ -79,6 +83,9 @@ def data():
     donor_type_filters = []
     donation_type_filters = []
     is_legacy_filters = []
+    start_date_filter = None
+    end_date_filter = None
+
     for filter in all_filters:
         if filter.startswith("recipient"):
             recipient_filters.append(filter)
@@ -88,6 +95,10 @@ def data():
             donation_type_filters.append(filter)
         if filter.startswith("is_legacy"):
             is_legacy_filters.append(filter)
+        if filter.startswith("date_gt_"):
+            start_date_filter = datetime.strptime(filter[-10:], "%Y-%m-%d")
+        if filter.startswith("date_lt_"):
+            end_date_filter = datetime.strptime(filter[-10:], "%Y-%m-%d")
 
     # Each filter bucket is an additional group of ORs added as an AND, so need to be grouped together
     recipient_filter_statements = populate_filter_statements(
@@ -112,6 +123,10 @@ def data():
         query = query.where(Donation.is_legacy == False)
     elif "is_legacy_true" in is_legacy_filters:
         query = query.where(Donation.is_legacy == True)
+    if start_date_filter:
+        query = query.where(Donation.date > start_date_filter)
+    if end_date_filter:
+        query = query.where(Donation.date <= end_date_filter)
 
     # Search filter
     search = request.args.get("search")

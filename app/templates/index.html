@@ -10,7 +10,7 @@
   <form action="/" method="POST">
     {{ form.csrf_token }}
     <div class="row">
-      <div class="col">
+      <div class="col-4">
         <strong>Recipients</strong><br>
         {{ form.recipient_labour_party.label }} {{ form.recipient_labour_party(size=20) }} <br>
         {{ form.recipient_conservative_and_unionist_party.label }} {{ form.recipient_conservative_and_unionist_party(size=20) }} <br>
@@ -18,8 +18,11 @@
         <strong>Legacy</strong><br>
         {{ form.is_legacy_true.label }} {{ form.is_legacy_true(size=20) }} <br>
         {{ form.is_legacy_false.label }} {{ form.is_legacy_false(size=20) }} <br>
+        <strong>Dates</strong><br>
+        {{ form.date_gt.label }} {{ form.date_gt(size=20) }} <br>
+        {{ form.date_lt.label }} {{ form.date_lt(size=20) }} <br>
       </div>
-      <div class="col">
+      <div class="col-4">
         <strong>Donor types</strong><br>
         {{ form.donor_type_individual.label }} {{ form.donor_type_individual(size=20) }} <br>
         {{ form.donor_type_company.label }} {{ form.donor_type_company(size=20) }} <br>
@@ -38,7 +41,7 @@
         {{ form.donor_type_unidentifiable_donor.label }} {{
         form.donor_type_unidentifiable_donor(size=20) }} <br>
       </div>
-      <div class="col">
+      <div class="col-4">
         <strong>Donation types</strong><br>
         {{ form.donation_type_cash.label }} {{ form.donation_type_cash(size=20) }} <br>
         {{ form.donation_type_non_cash.label }} {{ form.donation_type_non_cash(size=20) }} <br>
@@ -95,7 +98,7 @@
       return value;
     }
 
-    // Adjust tickboxes to match filters in api_filter template variable
+    // Adjust tickboxes and date fields to match filters in api_filter template variable
     window.onload = function() {
       const regex = /filter\=([^&]+?)(?:&|$)/g;
       const recipientFilters = [];
@@ -105,7 +108,15 @@
       }
       if (recipientFilters.length > 0) {
         for (var filter of recipientFilters) {
-          document.querySelector(`input[name="${filter}"]`).checked = true;
+          if (filter.startsWith("date_gt")) {
+            var startDateField = document.getElementById("date_gt")
+            startDateField.value = filter.slice(-10)
+          } else if (filter.startsWith("date_lt")) {
+            var endDateField = document.getElementById("date_lt")
+            endDateField.value = filter.slice(-10)
+          } else {
+            document.querySelector(`input[name="${filter}"]`).checked = true;
+          }
         }
       } else {
         document.querySelectorAll('input').forEach(function(checkbox) {

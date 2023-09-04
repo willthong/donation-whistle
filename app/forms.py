@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, DateField
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional
 
 from app import db
 from app.models import User, DonorAlias
@@ -76,5 +76,7 @@ class FilterForm(FlaskForm):
     donation_type_unidentified_donor = BooleanField("Unidentified Donor")
     is_legacy_true = BooleanField("Legacy")
     is_legacy_false = BooleanField("In vitro")
+    date_gt = DateField("After", validators=(Optional(),))
+    date_lt = DateField("Before", validators=(Optional(),))
     submit = SubmitField("Apply filters")
 # TODO: work out how to create an Other field with a hover-over
