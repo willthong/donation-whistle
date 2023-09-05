@@ -10,54 +10,82 @@
   <form action="/" method="POST"> {{ form.csrf_token }}
   <div class="row">
     <div class="col-4">
-      <strong>Recipients</strong><br>
-      {{ form.recipient_labour_party(size=20) }} {{ form.recipient_labour_party.label }}<br>
-      {{ form.recipient_conservative_and_unionist_party(size=20) }} 
-      {{ form.recipient_conservative_and_unionist_party.label }} <br>
-      {{ form.recipient_liberal_democrats(size=20) }} 
-      {{ form.recipient_liberal_democrats.label }} <br>
-      {{ form.recipient_scottish_national_party_snp(size=20) }} 
-      {{ form.recipient_scottish_national_party_snp.label }} <br>
-      {{ form.recipient_green_party(size=20) }} {{ form.recipient_green_party.label }} <br>
-      {{ form.recipient_reform_uk(size=20) }} {{ form.recipient_reform_uk.label }} <br>
-      {{ form.recipient_other(size=20) }} {{ form.recipient_other.label }} <br>
-      <strong>Legacy</strong><br>
-      {{ form.is_legacy_true(size=20) }} {{ form.is_legacy_true.label }} <br>
-      {{ form.is_legacy_false(size=20) }} {{ form.is_legacy_false.label }} <br>
+      <div class="filter-box">
+        <strong>Recipients</strong><br>
+        {{ form.recipient_labour_party(size=20) }} {{ form.recipient_labour_party.label }}<br>
+        {{ form.recipient_conservative_and_unionist_party(size=20) }} 
+        {{ form.recipient_conservative_and_unionist_party.label }} <br>
+        {{ form.recipient_liberal_democrats(size=20) }} 
+        {{ form.recipient_liberal_democrats.label }} <br>
+        {{ form.recipient_scottish_national_party_snp(size=20) }} 
+        {{ form.recipient_scottish_national_party_snp.label }} <br>
+        {{ form.recipient_green_party(size=20) }} {{ form.recipient_green_party.label }} <br>
+        {{ form.recipient_reform_uk(size=20) }} {{ form.recipient_reform_uk.label }} <br>
+        {{ form.recipient_other(size=20) }} 
+        <span data-bs-toggle="tooltip" data-bs-title="Includes all other parties,
+          including the DUP, Plaid Cymru, Alba and Sinn Féin">
+          {{ form.recipient_other.label }}<b><sup>?</sup></b>
+        </span> <br>
+      </div>
+      <div class="filter-box">
+        <strong>Legacy</strong><br>
+        {{ form.is_legacy_true(size=20) }} {{ form.is_legacy_true.label }}
+        <br>
+        {{ form.is_legacy_false(size=20) }} {{ form.is_legacy_false.label }} <br>
+      </div>
     </div>
     <div class="col-4">
-      <strong>Donor types</strong><br>
-      {{ form.donor_type_individual(size=20) }} {{ form.donor_type_individual.label }} <br>
-      {{ form.donor_type_company(size=20) }} {{ form.donor_type_company.label }} <br>
-      {{ form.donor_type_limited_liability_partnership(size=20) }} {{ form.donor_type_limited_liability_partnership.label }} <br>
-      {{ form.donor_type_trade_union(size=20) }} {{ form.donor_type_trade_union.label }} <br>
-      {{ form.donor_type_unincorporated_association(size=20) }} {{ form.donor_type_unincorporated_association.label }} <br>
-      {{ form.donor_type_trust(size=20) }} {{ form.donor_type_trust.label }} <br>
-      {{ form.donor_type_other(size=20) }} {{ form.donor_type_other.label }} <br>
+      <div class="filter-box">
+        <strong>Donor types</strong><br>
+        {{ form.donor_type_individual(size=20) }} {{ form.donor_type_individual.label }} <br>
+        {{ form.donor_type_company(size=20) }} {{ form.donor_type_company.label }} <br>
+        {{ form.donor_type_limited_liability_partnership(size=20) }} {{ form.donor_type_limited_liability_partnership.label }} <br>
+        {{ form.donor_type_trade_union(size=20) }} {{ form.donor_type_trade_union.label }} <br>
+        {{ form.donor_type_unincorporated_association(size=20) }} {{ form.donor_type_unincorporated_association.label }} <br>
+        {{ form.donor_type_trust(size=20) }} {{ form.donor_type_trust.label }} <br>
+        {{ form.donor_type_friendly_society(size=20) }} {{ form.donor_type_friendly_society.label }} <br>
+        {{ form.donor_type_other(size=20) }}
+        <span data-bs-toggle="tooltip" data-bs-title="Disabled by default. Comprises
+          mostly mis-categorised donations such as building societies, public funds, impermissible   
+          donors, unidentifiable donors and 'N/A'">
+          {{ form.donor_type_other.label }}<b><sup>?</sup></b>
+        </span> <br>
+      </div>
     </div>
     <div class="col-4">
-      <strong>Donation types</strong><br>
-      {{ form.donation_type_cash(size=20) }} {{ form.donation_type_cash.label }} <br>
-      {{ form.donation_type_non_cash(size=20) }} {{ form.donation_type_non_cash.label }} <br>
-      {{ form.donation_type_visit(size=20) }} {{ form.donation_type_visit.label }} <br>
-      {{ form.donation_type_other(size=20) }} {{ form.donation_type_other.label }} <br>
-      <strong>Dates</strong><br>
-      {{ form.date_gt.label }}: {{ form.date_gt(size=20) }} <br>
-      {{ form.date_lt.label }}: {{ form.date_lt(size=20) }} <br>
+      <div class="filter-box">
+        <strong>Donation types</strong><br>
+        {{ form.donation_type_cash(size=20) }} {{ form.donation_type_cash.label }} <br>
+        {{ form.donation_type_non_cash(size=20) }} 
+        <span data-bs-toggle="tooltip" data-bs-title="Mostly gifts-in-kind, such as
+          seconded staff members or paying for the hosting of events which benefit a
+          political party.">
+          {{ form.donation_type_non_cash.label }}<b><sup>?</sup></b>
+        </span> <br>
+        {{ form.donation_type_visit(size=20) }} {{ form.donation_type_visit.label }} <br>
+        {{ form.donation_type_other(size=20) }} 
+        <span data-bs-toggle="tooltip" data-bs-title="Disabled by default. Comprises public funds (not 
+          gifts so much as statutory obligations); impermissible & unidentified donors (these gifts are
+          returned so don't really count); and exempt trusts (mostly legacy donations). TODO: link 
+          to explanatory blog post.">
+          {{ form.donation_type_other.label }}<b><sup>?</sup></b>
+        </span> <br>
+      </div>
+      <div class="filter-box">
+        <strong>Dates</strong><br>
+        {{ form.date_gt.label }}: {{ form.date_gt(size=20) }} <br>
+        {{ form.date_lt.label }}: {{ form.date_lt(size=20) }} <br>
+      </div>
     </div>
   </div>
+  <br>
   <div class="row">
-    <div class="col-6">
-      <div style="display: flex; flex: auto;">
-        {{ form.submit() }}</form>
-      </div>
+    <span>
+      <button type="submit" class="btn btn-primary" >Apply filters</button> </form>
+      <button type="button" class="btn btn-secondary" onclick="window.location.href = '{{ url_for('index') }}'; return false;">Reset filters</button>
+      <br><br>
+    </span>
     </div>
-    <div class="col-6">
-      <div style="display: flex; flex: auto;">
-        <input id="reset_filters" onclick="window.location.href = '{{ url_for('index') }}'; return false;" type="submit" value="Reset filters">
-      </div>
-    </div>
-  </div>
   <div id="table"></div>
 {% endblock %}
 
@@ -129,14 +157,24 @@
     new Grid({
       columns: [
         { id: 'donor', name: 'Donor', formatter: (cell) => html(`${cell}`) },
-        { id: 'donor_type', name: 'Donor Type', formatter: (cell) => donorTypeFormatter(cell)},
-        { id: 'recipient', name: 'Recipient', formatter: (cell) => recipientFormatter(cell) },
+        { 
+          id: 'donor_type', 
+          sort: false, 
+          name: 'Donor Type', 
+          formatter: (cell) => donorTypeFormatter(cell)
+        },
+        { id: 'recipient', 
+          sort: false,
+          name: 'Recipient', 
+          formatter: (cell) => recipientFormatter(cell) 
+        },
         { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
-        { id: 'type', name: 'Donation Type' },
+        { id: 'type', name: 'Donation Type', sort: false, },
         { id: 'amount', name: 'Amount', formatter: (cell) => currencyFormatter(cell) },
         { 
           id: 'legacy', 
           name: 'Legacy', 
+          sort: false,
           formatter: function (cell) { 
             return cell ? "✅" : "❌";
           }
@@ -176,7 +214,16 @@
         },
       },
       resizable: true,
+      language: {
+        'search': {
+          'placeholder': '🔍   Search for a donor...'
+        },
+      },
     }).render(document.getElementById('table'));
+
+    // Tooltip activation
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
   </script>
 
 {% endblock %}

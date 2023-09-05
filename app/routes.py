@@ -27,12 +27,17 @@ from app.forms import (
 )
 
 OTHER_DONOR_TYPES = [
-    "donor_type_building_society", "donor_type_public_fund", "donor_type_friendly_society",    
-    "donor_type_impermissible_donor", "donor_type_na", "donor_type_unidentifiable_donor"
+    "donor_type_building_society",
+    "donor_type_public_fund",
+    "donor_type_impermissible_donor",
+    "donor_type_na",
+    "donor_type_unidentifiable_donor",
 ]
 OTHER_DONATION_TYPES = [
-    "donation_type_public_funds", "donation_type_exempt_trust", 
-    "donation_type_permissible_donor_exempt_trust", "donation_type_impermissible_donor", 
+    "donation_type_public_funds",
+    "donation_type_exempt_trust",
+    "donation_type_permissible_donor_exempt_trust",
+    "donation_type_impermissible_donor",
     "donation_type_unidentified_donor",
 ]
 OTHER_DONATION_TYPES = [
@@ -42,7 +47,7 @@ OTHER_DONATION_TYPES = [
     "donation_type_impermissible_donor",
     "donation_type_unidentified_donor",
 ]
-DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
+DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
 
 
 class LoginForm(FlaskForm):
@@ -82,10 +87,16 @@ def index():
 def populate_filter_statements(filters, prefix, db_field):
     output = []
     for filter in filters:
-        filter = filter.replace(prefix, "").replace("_", " ").replace("(","").replace(")","")
-        filter = db.func.REPLACE(db.func.REPLACE(db.func.lower(
-            db_field
-        ), "(", ""), ")","") == filter
+        filter = (
+            filter.replace(prefix, "")
+            .replace("_", " ")
+            .replace("(", "")
+            .replace(")", "")
+        )
+        filter = (
+            db.func.REPLACE(db.func.REPLACE(db.func.lower(db_field), "(", ""), ")", "")
+            == filter
+        )
         output.append(filter)
     return output
 
@@ -138,16 +149,21 @@ def data():
     )
 
     if recipient_filter_statements and "recipient_other" in all_filters:
-        query = query.where(db.or_(
-            db.not_(db.or_(
-                Recipient.name == "Labour Party",
-                Recipient.name == "Conservative and Unionist Party",
-                Recipient.name == "Liberal Democrats",
-                Recipient.name == "Scottish National Party (SNP)",
-                Recipient.name == "Green Party",
-                Recipient.name == "Reform UK",
-            )),(db.or_(*recipient_filter_statements))
-        ))
+        query = query.where(
+            db.or_(
+                db.not_(
+                    db.or_(
+                        Recipient.name == "Labour Party",
+                        Recipient.name == "Conservative and Unionist Party",
+                        Recipient.name == "Liberal Democrats",
+                        Recipient.name == "Scottish National Party (SNP)",
+                        Recipient.name == "Green Party",
+                        Recipient.name == "Reform UK",
+                    )
+                ),
+                (db.or_(*recipient_filter_statements)),
+            )
+        )
     elif recipient_filter_statements:
         query = query.where(db.or_(*recipient_filter_statements))
     if donor_type_filter_statements:
@@ -172,11 +188,7 @@ def data():
         # Donation.amount or Donation.date matches. You must use a
         # https://docs.sqlalchemy.org/en/20/tutorial/data_select.html#the-where-clause
         query = query.where(
-            db.or_(
-                Donation.value.ilike(f"%{search}%"),
-                Recipient.name.ilike(f"%{search}%"),
-                Donor.name.ilike(f"%{search}%"),
-            )
+            Donor.name.ilike(f"%{search}%"),
         )
     total = len(list(db.session.scalars(query)))
 
@@ -200,7 +212,6 @@ def data():
                 query = query.order_by(criterion.desc())
             else:
                 query = query.order_by(criterion)
-            # TODO: look into disabling some sorts
 
     # Pagination
     start = request.args.get("start", type=int, default=-1)
