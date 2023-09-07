@@ -7,9 +7,9 @@ import ssl
 import urllib
 
 from app.models import Donation, Recipient, DonationType, Donor, DonorAlias, DonorType
-from app import db
+from app import db, cache
 
-url = "https://search.electoralcommission.org.uk/api/csv/Donations?start={start}&rows={pageSize}&query=&sort=AcceptedDate&order=desc&et=pp&et=ppm&et=tp&et=perpar&et=rd&date=Received&from=&to=&rptPd=&prePoll=true&postPoll=true&register=gb&register=ni&register=none&donorStatus=individual&donorStatus=tradeunion&donorStatus=company&donorStatus=unincorporatedassociation&donorStatus=publicfund&donorStatus=other&donorStatus=registeredpoliticalparty&donorStatus=friendlysociety&donorStatus=trust&donorStatus=limitedliabilitypartnership&donorStatus=impermissibledonor&donorStatus=na&donorStatus=unidentifiabledonor&donorStatus=buildingsociety&isIrishSourceYes=true&isIrishSourceNo=true&includeOutsideSection75=true"
+URL = "https://search.electoralcommission.org.uk/api/csv/Donations?start={start}&rows={pageSize}&query=&sort=AcceptedDate&order=desc&et=pp&et=ppm&et=tp&et=perpar&et=rd&date=Received&from=&to=&rptPd=&prePoll=true&postPoll=true&register=gb&register=ni&register=none&donorStatus=individual&donorStatus=tradeunion&donorStatus=company&donorStatus=unincorporatedassociation&donorStatus=publicfund&donorStatus=other&donorStatus=registeredpoliticalparty&donorStatus=friendlysociety&donorStatus=trust&donorStatus=limitedliabilitypartnership&donorStatus=impermissibledonor&donorStatus=na&donorStatus=unidentifiabledonor&donorStatus=buildingsociety&isIrishSourceYes=true&isIrishSourceNo=true&includeOutsideSection75=true"
 
 # Ignore SSL certificate errors
 ctx = ssl.create_default_context()
@@ -18,9 +18,9 @@ ctx.verify_mode = ssl.CERT_NONE
 
 
 def download_raw_data():
-    print("Retrieving data from", url)
+    print("Retrieving data from", URL)
     filename = "raw_data_" + str(dt.date.today()) + ".csv"
-    urllib.request.urlretrieve(url, filename)
+    urllib.request.urlretrieve(URL, filename)
     print("Saved", filename)
     return filename
 
@@ -199,3 +199,5 @@ with open(raw_data_file, newline="") as infile:
             db.session.add(new_donation)
 
     db.session.commit()
+
+cache.clear()

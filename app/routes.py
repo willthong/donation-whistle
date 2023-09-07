@@ -1,7 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+from plotly import graph_objects as go
 from werkzeug.urls import url_parse
 
-from flask import flash, redirect, request, render_template, url_for, escape
+from flask import flash, jsonify, redirect, request, render_template, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
@@ -9,7 +11,7 @@ from wtforms.validators import (
     DataRequired,
 )
 
-from app import app, db
+from app import app, db, cache
 from app.models import (
     User,
     DonorAlias,
@@ -32,13 +34,6 @@ OTHER_DONOR_TYPES = [
     "donor_type_impermissible_donor",
     "donor_type_na",
     "donor_type_unidentifiable_donor",
-]
-OTHER_DONATION_TYPES = [
-    "donation_type_public_funds",
-    "donation_type_exempt_trust",
-    "donation_type_permissible_donor_exempt_trust",
-    "donation_type_impermissible_donor",
-    "donation_type_unidentified_donor",
 ]
 OTHER_DONATION_TYPES = [
     "donation_type_public_funds",
@@ -78,7 +73,6 @@ def index():
     filter_string = request.query_string.decode()
     if not filter_string:
         filter_string = DEFAULT_FILTERS
-    print(filter_string)
     return render_template(
         "index.html", title="Home", form=form, api_filter=filter_string
     )
@@ -102,6 +96,8 @@ def populate_filter_statements(filters, prefix, db_field):
 
 
 @app.route("/api/data")
+@cache.cached(timeout=600000, query_string=True)
+# https://stackoverflow.com/a/47181782
 def data():
     query = db.select(Donation).join(Recipient).join(Donor).join(DonationType)
 
@@ -184,9 +180,10 @@ def data():
     # Search filter
     search = request.args.get("search")
     if search:
-        # Filter so that either Donation.donor or Donation.recipient or
-        # Donation.amount or Donation.date matches. You must use a
+        # Filter so that Donation.donor.name matches. You must use a where clause
         # https://docs.sqlalchemy.org/en/20/tutorial/data_select.html#the-where-clause
+        # TODO: check if this is a bug because it should be looking at Aliases. Or maybe
+        # it should be doing both!
         query = query.where(
             Donor.name.ilike(f"%{search}%"),
         )
@@ -224,6 +221,195 @@ def data():
         "data": [donation.to_dict() for donation in db.session.scalars(query)],
         "total": total,
     }
+
+
+@app.route("/stats/recipients")
+def recipient_stats():
+    # Generate dates
+    start_date = db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
+    end_date = db.session.query(db.func.max(Donation.date)).first()[0]
+    date_series = []
+    while start_date < end_date:
+        date_series.append(start_date)
+        start_date += relativedelta(months=1)
+
+    donation_type_filter_statements = populate_filter_statements(
+        OTHER_DONATION_TYPES, "donation_type_", DonationType.name
+    )
+    donor_type_filter_statements = populate_filter_statements(
+        OTHER_DONOR_TYPES, "donor_type_", Donor.donor_type_id
+    )
+
+    # Monthly is the smallest useful aggregation, so it's most
+    # efficient to do (and cache) that aggregation on the server, with extra binning
+    # done by Plotly
+    # Donor still required in order to filter donor types
+    query = (
+        db.session.query(
+            Recipient.name,
+            db.func.strftime("%Y-%m", Donation.date).label("month"),
+            db.func.sum(Donation.value),
+        )
+        .join(Recipient)
+        .join(Donor)
+        .join(DonationType)
+        .where(db.not_(db.or_(*donation_type_filter_statements)))
+        .where(db.not_(db.or_(*donor_type_filter_statements)))
+        .group_by("month", Recipient.name)
+        .all()
+    )
+
+    parties = {}
+
+    parties["Conservative and Unionist Party"] = [0 for i in range(0, len(date_series))]
+    parties["Labour Party"] = [0 for i in range(0, len(date_series))]
+    parties["Liberal Democrats"] = [0 for i in range(0, len(date_series))]
+    parties["Reform UK"] = [0 for i in range(0, len(date_series))]
+    parties["All other parties"] = [0 for i in range(0, len(date_series))]
+
+    for record in query:
+        date = datetime.strptime(record[1], "%Y-%m").date()
+        index = date_series.index(date)
+        if record[0] not in ["Conservative and Unionist Party", "Labour Party", "Liberal Democrats", "Reform UK"]:
+            parties["All other parties"][index] += round(record[2], 2)
+        else:
+            parties[record[0]][index] = round(record[2], 2)
+
+    yview_args = [{"xbins.size": "M12"}, {
+        "xaxis.tickformat": "%Y", 
+        "xaxis.dtick": "M12", 
+        "xaxis.ticklabelmode": "period",
+        "xaxis.ticks": "",
+        "xaxis.tickformatstops": [],
+        "xaxis.hoverformat":"%b %Y",
+        }
+    ]
+    qview_args = [{"xbins.size": "M3"}, {
+        "xaxis.ticks": "outside",
+        "xaxis.tickformat": "Q%q %Y", 
+        "xaxis.ticklabelmode": "period",
+        "xaxis.dtick": "M3", 
+        "xaxis.tickmode":"auto",
+        "xaxis.ticks": "outside",
+        "xaxis.tickformatstops": [
+            {"dtickrange":[None, "M5"], "value":"Q%q %Y"},
+            {"dtickrange":["M5", None], "value":"%Y"},
+        ],
+        "xaxis.hoverformat":"%b %Y",
+        }
+    ]
+    mview_args = [{"xbins.size": "M1"}, {
+        "xaxis.tickmode":"auto",
+        "xaxis.dtick":1,
+        "xaxis.ticks": "outside",
+        "xaxis.ticklabelmode": "period",
+        "xaxis.tickformatstops": [
+                {"dtickrange":[None, "M1"], "value":"%B %Y"},
+                {"dtickrange":["M1", "M3"], "value":"Q%q %Y"},
+                {"dtickrange":["M3", None], "value":"%Y"},
+            ],
+        }
+    ]
+
+    figure = go.Figure(
+        data=[
+            go.Histogram(
+                name="Conservative Party",
+                customdata=["Conservative Party" for value in date_series],
+                x=date_series,
+                y=parties["Conservative and Unionist Party"],
+                xbins={"start":datetime(2001, 1, 1), "size":"M12"},
+                marker_color='rgb(0, 135, 220)',
+                histfunc="sum",
+                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+            ),
+            go.Histogram(
+                name="Labour Party",
+                customdata=["Labour Party" for value in date_series],
+                x=date_series,
+                y=parties["Labour Party"],
+                xbins={"start":datetime(2001, 1, 1), "size":"M12"},
+                marker_color='rgb(228, 0, 59)',
+                histfunc="sum",
+                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+            ),
+            go.Histogram(
+                name="Liberal Democrats",
+                customdata=["Liberal Democrats" for value in date_series],
+                x=date_series,
+                y=parties["Liberal Democrats"],
+                xbins={ "start":datetime(2001, 1, 1), "size":"M12" },
+                marker_color='rgb(255, 159, 26)',
+                histfunc="sum",
+                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                visible="legendonly",
+            ),
+            go.Histogram(
+                name="Reform UK (formerly Brexit Party)",
+                customdata=["Reform UK" for value in date_series],
+                x=date_series,
+                y=parties["Reform UK"],
+                xbins={ "start":datetime(2001, 1, 1), "size":"M12" },
+                marker_color='rgb(0, 146, 180)',
+                histfunc="sum",
+                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                visible="legendonly",
+            ),
+            go.Histogram(
+                name="All other parties",
+                customdata=["All other parties" for value in date_series],
+                x=date_series,
+                y=parties["All other parties"],
+                xbins={ "start":datetime(2001, 1, 1), "size":"M12" },
+                marker_color='rgb(97, 224, 0)',
+                histfunc="sum",
+                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                visible="legendonly",
+            ),
+        ],
+        layout={
+            "title":"Reportable Donations to Political Parties",
+            "xaxis":{"title":"", "type":"date"},
+            "xaxis_hoverformat":"%b %Y",
+            "yaxis":{"title":"£", "type":"linear"},
+            "sliders":[{
+                "active":0,
+                "pad": {"t": 50},
+                "steps": [
+                    {"args": yview_args, "label":"Year", "method":"update"},
+                    {"args": qview_args, "label":"Quarter", "method":"update"},
+                    {"args": mview_args, "label":"Month", "method":"update"},
+                ],
+            }],
+            "legend": {
+                "x": 0.01,
+                "y": 0.99,
+                "bgcolor":"rgba(255,255,255,0)",
+                "bordercolor":"rgba(255,255,255,0)",
+            },
+            "hovermode": "x",
+        }
+    )
+    figure.update_xaxes(
+        tick0=datetime(2001, 7, 2),
+        dtick="M12",
+        tickformat="%Y",
+    )
+    figure.update_yaxes(
+        tickangle=90,
+        ticklabelstep=1,
+        tickformat=".2s",
+    )
+    figure.update_traces(
+    )
+    
+
+    # Categories can be facetted subplots?
+
+    # Response
+    return render_template(
+        "recipient_stats.html", title="Party statistics", figure=figure.to_json()
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -382,7 +568,6 @@ def alias(id):
             return redirect(url_for("alias", id=id))
         alias.name = form.alias_name.data or None
         alias.note = form.note.data or None
-        print(alias)
         db.session.commit()
         flash("Alias updated!")
     return render_template("alias_detail.html", title=title, alias=alias, form=form)

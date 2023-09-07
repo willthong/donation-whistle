@@ -9,3 +9,7 @@ class Config(object):
         basedir, "donation-whistle.db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    CACHE_TYPE = "FileSystemCache"
+    CACHE_DIR = "./cache"
+
+

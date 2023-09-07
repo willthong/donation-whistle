@@ -28,12 +28,15 @@ python3 donation_scraper.py
 * [X] Import raw data into SQLite database using SQLAlchemy, with 'sane defaults'
   (exclude double-reported gifts)
 * [X] User accounts
-* [ ] Define aliases UI
+* [X] Define aliases UI
 * [ ] Simple import UI
-* [ ] Allow exploration of data (tabular), including with 'sane default' filters
-  (central party only; group aliases, including trade unions; exclude public funds)
+* [X] Allow exploration of data (tabular), including with 'sane default' filters
+  (group aliases, including trade unions; exclude public funds)
 * [ ] Allow exploration of data (graphical)
-* [ ] Import UI (including async import and progress bar)
+* [ ] Data export as CSV
+* [ ] Data import UI (including async import and progress bar)
+* [ ] Alias import/export
+* [ ] Election view for the 12 months leading up to an election
 * [ ] Write and link to a blog post to explain why this project exists
 
 ## Contributing

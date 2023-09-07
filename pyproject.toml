@@ -17,6 +17,8 @@ flask-login = "^0.6.2"
 flask-migrate = "^4.0.4"
 flask-sqlalchemy = "^3.0.5"
 flask-wtf = "^1.1.1"
+plotly = "^5.15.1"
+python-dateutil = "^2.8.2"
 python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
