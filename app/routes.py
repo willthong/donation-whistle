@@ -223,6 +223,98 @@ def data():
     }
 
 
+@app.route("/recipient/<id>", methods=["GET", "POST"])
+def recipient(id):
+    recipient = db.get_or_404(Recipient, id)
+    title = f"{recipient.name}"
+
+    donation_type_filter_statements = populate_filter_statements(
+        OTHER_DONATION_TYPES, "donation_type_", DonationType.name
+    )
+    donor_type_filter_statements = populate_filter_statements(
+        OTHER_DONOR_TYPES, "donor_type_", Donor.donor_type_id
+    )
+
+    query = (
+        db.session.query(
+            DonorAlias.name,
+            Donor.donor_type_id,
+            db.func.sum(Donation.value).label("donations"),
+            db.func.min(Donation.date).label("first_gift"),
+            db.func.max(Donation.date).label("latest_gift"),
+        )
+        .join(Donor.donor_alias)
+        .join(Donation)
+        .join(Recipient)
+        .join(DonationType)
+        .where(Recipient.name == recipient.name)
+        .where(db.not_(db.or_(*donation_type_filter_statements)))
+        .where(db.not_(db.or_(*donor_type_filter_statements)))
+        .group_by(DonorAlias.name)
+        .order_by(db.desc("donations"))
+        .limit(100)
+        .all()
+    )
+
+    donor_type_colour_assignment = {
+        "Individual": "blue",
+        "Company": "blue",
+        "Limited Liability Partnership": "blue",
+        "Trade Union": "red",
+        "Unincorporated Association": "yellow",
+    }
+
+    top_donors = [record[0] for record in query]
+    donor_type = [record[1] for record in query]
+    donor_type_colours = []
+    for record in query:
+        if record[1] in donor_type_colour_assignment.keys():
+            donor_type_colours.append(donor_type_colour_assignment[record[1]])
+        else:
+            donor_type_colours.append("black")
+    donations = [record[2] for record in query]
+    first_gift = [record[3] for record in query]
+    latest_gift = [record[4] for record in query]
+
+    top_donor_graph = go.Figure(
+        data=[
+            go.Bar(
+                x=top_donors,
+                y=donations,
+                customdata=list(zip(first_gift, latest_gift)),
+                hovertemplate="£%{y:.4s}"
+                "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
+                marker_color=donor_type_colours,
+            ),
+        ],
+        layout={
+            "title": "Top Donors",
+            "xaxis": {"title": "", "range": [-0.5, 10.5]},
+            # "xaxis_hoverformat": "%b %Y",
+            "yaxis": {"title": "£", "type": "linear"},
+            "legend": {
+                "x": 0.01,
+                "y": 0.99,
+                "bgcolor": "rgba(255,255,255,0)",
+                "bordercolor": "rgba(255,255,255,0)",
+            },
+            "hovermode": "closest",
+        },
+    )
+    top_donor_graph.update_xaxes()
+    top_donor_graph.update_yaxes()
+    top_donor_graph.update_traces()
+
+    print(top_donor_graph)
+
+    return render_template(
+        "recipient.html",
+        title=title,
+        recipient=recipient,
+        top_donor_graph=top_donor_graph.to_json(),
+    )
+
+
 @app.route("/stats/recipients")
 def recipient_stats():
     # Generate dates
@@ -270,45 +362,56 @@ def recipient_stats():
     for record in query:
         date = datetime.strptime(record[1], "%Y-%m").date()
         index = date_series.index(date)
-        if record[0] not in ["Conservative and Unionist Party", "Labour Party", "Liberal Democrats", "Reform UK"]:
+        if record[0] not in [
+            "Conservative and Unionist Party",
+            "Labour Party",
+            "Liberal Democrats",
+            "Reform UK",
+        ]:
             parties["All other parties"][index] += round(record[2], 2)
         else:
             parties[record[0]][index] = round(record[2], 2)
 
-    yview_args = [{"xbins.size": "M12"}, {
-        "xaxis.tickformat": "%Y", 
-        "xaxis.dtick": "M12", 
-        "xaxis.ticklabelmode": "period",
-        "xaxis.ticks": "",
-        "xaxis.tickformatstops": [],
-        "xaxis.hoverformat":"%b %Y",
-        }
+    yview_args = [
+        {"xbins.size": "M12"},
+        {
+            "xaxis.tickformat": "%Y",
+            "xaxis.dtick": "M12",
+            "xaxis.ticklabelmode": "period",
+            "xaxis.ticks": "",
+            "xaxis.tickformatstops": [],
+            "xaxis.hoverformat": "%b %Y",
+        },
     ]
-    qview_args = [{"xbins.size": "M3"}, {
-        "xaxis.ticks": "outside",
-        "xaxis.tickformat": "Q%q %Y", 
-        "xaxis.ticklabelmode": "period",
-        "xaxis.dtick": "M3", 
-        "xaxis.tickmode":"auto",
-        "xaxis.ticks": "outside",
-        "xaxis.tickformatstops": [
-            {"dtickrange":[None, "M5"], "value":"Q%q %Y"},
-            {"dtickrange":["M5", None], "value":"%Y"},
-        ],
-        "xaxis.hoverformat":"%b %Y",
-        }
-    ]
-    mview_args = [{"xbins.size": "M1"}, {
-        "xaxis.tickmode":"auto",
-        "xaxis.dtick":1,
-        "xaxis.ticks": "outside",
-        "xaxis.ticklabelmode": "period",
-        "xaxis.tickformatstops": [
-                {"dtickrange":[None, "M1"], "value":"%B %Y"},
-                {"dtickrange":["M1", "M3"], "value":"Q%q %Y"},
-                {"dtickrange":["M3", None], "value":"%Y"},
+    qview_args = [
+        {"xbins.size": "M3"},
+        {
+            "xaxis.ticks": "outside",
+            "xaxis.tickformat": "Q%q %Y",
+            "xaxis.ticklabelmode": "period",
+            "xaxis.dtick": "M3",
+            "xaxis.tickmode": "auto",
+            "xaxis.ticks": "outside",
+            "xaxis.tickformatstops": [
+                {"dtickrange": [None, "M5"], "value": "Q%q %Y"},
+                {"dtickrange": ["M5", None], "value": "%Y"},
             ],
-        }
+            "xaxis.hoverformat": "%b %Y",
+        },
+    ]
+    mview_args = [
+        {"xbins.size": "M1"},
+        {
+            "xaxis.tickmode": "auto",
+            "xaxis.dtick": 1,
+            "xaxis.ticks": "outside",
+            "xaxis.ticklabelmode": "period",
+            "xaxis.tickformatstops": [
+                {"dtickrange": [None, "M1"], "value": "%B %Y"},
+                {"dtickrange": ["M1", "M3"], "value": "Q%q %Y"},
+                {"dtickrange": ["M3", None], "value": "%Y"},
+            ],
+        },
     ]
 
     figure = go.Figure(
@@ -318,30 +421,30 @@ def recipient_stats():
                 customdata=["Conservative Party" for value in date_series],
                 x=date_series,
                 y=parties["Conservative and Unionist Party"],
-                xbins={"start":datetime(2001, 1, 1), "size":"M12"},
-                marker_color='rgb(0, 135, 220)',
+                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                marker_color="rgb(0, 135, 220)",
                 histfunc="sum",
-                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
             ),
             go.Histogram(
                 name="Labour Party",
                 customdata=["Labour Party" for value in date_series],
                 x=date_series,
                 y=parties["Labour Party"],
-                xbins={"start":datetime(2001, 1, 1), "size":"M12"},
-                marker_color='rgb(228, 0, 59)',
+                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                marker_color="rgb(228, 0, 59)",
                 histfunc="sum",
-                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
             ),
             go.Histogram(
                 name="Liberal Democrats",
                 customdata=["Liberal Democrats" for value in date_series],
                 x=date_series,
                 y=parties["Liberal Democrats"],
-                xbins={ "start":datetime(2001, 1, 1), "size":"M12" },
-                marker_color='rgb(255, 159, 26)',
+                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                marker_color="rgb(255, 159, 26)",
                 histfunc="sum",
-                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
                 visible="legendonly",
             ),
             go.Histogram(
@@ -349,10 +452,10 @@ def recipient_stats():
                 customdata=["Reform UK" for value in date_series],
                 x=date_series,
                 y=parties["Reform UK"],
-                xbins={ "start":datetime(2001, 1, 1), "size":"M12" },
-                marker_color='rgb(0, 146, 180)',
+                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                marker_color="rgb(0, 146, 180)",
                 histfunc="sum",
-                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
                 visible="legendonly",
             ),
             go.Histogram(
@@ -360,35 +463,37 @@ def recipient_stats():
                 customdata=["All other parties" for value in date_series],
                 x=date_series,
                 y=parties["All other parties"],
-                xbins={ "start":datetime(2001, 1, 1), "size":"M12" },
-                marker_color='rgb(97, 224, 0)',
+                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                marker_color="rgb(97, 224, 0)",
                 histfunc="sum",
-                hovertemplate = "£%{y:.4s}<extra>%{customdata}</extra>",
+                hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
                 visible="legendonly",
             ),
         ],
         layout={
-            "title":"Reportable Donations to Political Parties",
-            "xaxis":{"title":"", "type":"date"},
-            "xaxis_hoverformat":"%b %Y",
-            "yaxis":{"title":"£", "type":"linear"},
-            "sliders":[{
-                "active":0,
-                "pad": {"t": 50},
-                "steps": [
-                    {"args": yview_args, "label":"Year", "method":"update"},
-                    {"args": qview_args, "label":"Quarter", "method":"update"},
-                    {"args": mview_args, "label":"Month", "method":"update"},
-                ],
-            }],
+            "title": "Reportable Donations to Political Parties",
+            "xaxis": {"title": "", "type": "date"},
+            "xaxis_hoverformat": "%b %Y",
+            "yaxis": {"title": "£", "type": "linear"},
+            "sliders": [
+                {
+                    "active": 0,
+                    "pad": {"t": 50},
+                    "steps": [
+                        {"args": yview_args, "label": "Year", "method": "update"},
+                        {"args": qview_args, "label": "Quarter", "method": "update"},
+                        {"args": mview_args, "label": "Month", "method": "update"},
+                    ],
+                }
+            ],
             "legend": {
                 "x": 0.01,
                 "y": 0.99,
-                "bgcolor":"rgba(255,255,255,0)",
-                "bordercolor":"rgba(255,255,255,0)",
+                "bgcolor": "rgba(255,255,255,0)",
+                "bordercolor": "rgba(255,255,255,0)",
             },
             "hovermode": "x",
-        }
+        },
     )
     figure.update_xaxes(
         tick0=datetime(2001, 7, 2),
@@ -400,9 +505,7 @@ def recipient_stats():
         ticklabelstep=1,
         tickformat=".2s",
     )
-    figure.update_traces(
-    )
-    
+    figure.update_traces()
 
     # Categories can be facetted subplots?
 
@@ -535,6 +638,8 @@ def new_alias():
                     selected_donors=request.args.get("selected_donors"),
                 )
             )
+            # TODO: fix the bug where you try to use a new alias name which corresponds
+            # to an existing alias
         alias = DonorAlias(
             name=form.alias_name.data,
             note=form.note.data,

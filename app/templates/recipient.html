@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <head>
+    <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
+  </head>
+{% endblock %}
+
+{% block app_content %}
+
+  <h1>Recipient detail: {{ recipient.name }}
+  </h1>
+  {% if recipient.deregistered %}
+    <p>
+      This party has been deregistered as of {{ recipient.deregistered.strftime("%-d %B
+      %Y") }}
+    </p>
+  {% endif %}
+  
+  <div id="topDonorGraph" style="width:1300px;height:600px;"></div>
+  TODO: top donors
+  TODO: donation makeup bar chart
+  TODO: filters for the above
+  TODO: a link to see all gifts (basically just to index with the appropriate filters)
+    
+  
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    var topDonorGraph = document.getElementById('topDonorGraph');
+    var topDonorGraphData = {{ top_donor_graph | safe }};
+    Plotly.newPlot(topDonorGraph, topDonorGraphData);
+
+    // Rotate Y axis title
+    var yTitle = document.querySelector('.ytitle');
+    yTitle.setAttribute('transform', 'rotate(0,' + yTitle.getAttribute('x') + ',' + yTitle.getAttribute('y') + ')');
+
+  </script>
+{% endblock %}
