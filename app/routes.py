@@ -181,7 +181,7 @@ def data():
     elif "is_legacy_true" in is_legacy_filters:
         query = query.where(Donation.is_legacy == True)
     if start_date_filter:
-        query = query.where(Donation.date > start_date_filter)
+        query = query.where(Donation.date >= start_date_filter)
     if end_date_filter:
         query = query.where(Donation.date <= end_date_filter)
 
@@ -231,11 +231,41 @@ def data():
     }
 
 
-@app.route("/recipient/<id>", methods=["GET", "POST"])
+def apply_date_filters(query, all_filters):
+    for filter in all_filters:
+        if filter.startswith("date_gt_"):
+            query = query.where(
+                Donation.date >= datetime.strptime(filter[-10:], "%Y-%m-%d")
+            )
+        if filter.startswith("date_lt_"):
+            query = query.where(
+                Donation.date <= datetime.strptime(filter[-10:], "%Y-%m-%d")
+            )
+    return query
+
+
+@app.route("/recipient/<int:id>", methods=["GET", "POST"])
 def recipient(id):
     recipient = db.get_or_404(Recipient, id)
-    title = f"{recipient.name}"
+    title = recipient.name
 
+    form = FilterForm()
+
+    if form.validate_on_submit():
+        filter_list = []
+        if request.form["date_gt"]:
+            filter_list.append("date_gt_" + request.form["date_gt"])
+        if request.form["date_lt"]:
+            filter_list.append("date_lt_" + request.form["date_lt"])
+        return redirect(
+            url_for(
+                "recipient",
+                id=id,
+                filter=filter_list,
+            )
+        )
+
+    all_filters = request.args.getlist("filter")
     donation_type_filter_statements = populate_filter_statements(
         OTHER_DONATION_TYPES, "donation_type_", DonationType.name
     )
@@ -260,9 +290,9 @@ def recipient(id):
         .where(db.not_(db.or_(*donor_type_filter_statements)))
         .group_by(DonorAlias.name)
         .order_by(db.desc("donations"))
-        .limit(100)
-        .all()
     )
+    top_donor_query = apply_date_filters(top_donor_query, all_filters)
+    top_donor_query = top_donor_query.limit(100).all()
 
     top_donors = [record[0] for record in top_donor_query]
     donor_type, relevant_types = [], {}
@@ -331,8 +361,9 @@ def recipient(id):
         .filter(db.not_(db.or_(*donor_type_filter_statements)))
         .group_by(Donor.donor_type_id)
         .order_by(db.desc("donations"))
-        .all()
     )
+    donation_sources_query = apply_date_filters(donation_sources_query, all_filters)
+    donation_sources_query = donation_sources_query.all()
 
     sources = [record[0] for record in donation_sources_query]
     donations_by_source = [record[1] for record in donation_sources_query]
@@ -360,21 +391,17 @@ def recipient(id):
         ],
         layout={
             "title": "Source of funds",
-            "yaxis": {"title": "", "autorange": "reversed"},
+            "yaxis": {
+                "title": "",
+            },
             "xaxis": {
                 "title": "£",
                 "type": "linear",
             },
-            # "legend": {
-            #     "x": 0,
-            #     "y": 1.02,
-            #     "bgcolor": "rgba(255,255,255,0)",
-            #     "bordercolor": "rgba(255,255,255,0)",
-            #     "orientation": "h",
-            #     "yanchor": "bottom",
-            # },
-            # "hovermode": "closest",
         },
+    )
+    donation_sources_graph.update_yaxes(
+        range=(-0.5, 2.5), constrain="domain", ticksuffix=" "
     )
 
     return render_template(
@@ -383,6 +410,7 @@ def recipient(id):
         recipient=recipient,
         top_donor_graph=top_donor_graph.to_json(),
         donation_sources_graph=donation_sources_graph.to_json(),
+        form=form,
     )
 
 

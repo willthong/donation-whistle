@@ -19,9 +19,21 @@
   
   <div id="topDonorGraph" style="width:1300px;height:600px;"></div>
 
-  <div id="donationSourcesGraph" style="width:800px;height:600px;"></div>
+  <div class="row">
+    <div class="col-6">
+      <div id="donationSourcesGraph" style="width:500px;height:300px;">
+      </div>
+    </div>
+    <div class="col-6">
+      <form action="/recipient/{{ recipient.id }}" method="POST"> {{ form.csrf_token }}
+        <strong>Dates</strong><br>
+        {{ form.date_gt.label }}: {{ form.date_gt(size=20) }} <br>
+        {{ form.date_lt.label }}: {{ form.date_lt(size=20) }} <br><br>
+        <button type="submit" class="btn btn-primary" >Apply filters</button> 
+      </form>
+    </div>
+  </div>
 
-  TODO: filters, primarily date
   TODO: a link to see all gifts (basically just to index with the appropriate filters)
     
   
@@ -45,6 +57,27 @@
     document.querySelectorAll('.legendtoggle').forEach(function(toggle) {
       toggle.style.pointerEvents = 'none';
     });
+
+    // Update ates to mmatch URL
+    const urlParams = new URLSearchParams(window.location.search);
+    var dateGt = "";
+    var dateLt = "";
+
+    urlParams.forEach((value, key) => {
+      if (key.includes('filter') && value.includes('date_gt_')) {
+        dateGt = value.replace('date_gt_', '');
+      } else if (key.includes('filter') && value.includes('date_lt_')) {
+        dateLt = value.replace('date_lt_', '');
+      }
+    });
+
+    // Get references to the input fields
+    const dateGtInput = document.getElementById('date_gt');
+    const dateLtInput = document.getElementById('date_lt');
+
+    // Set the input fields' values from the URL parameters, converting the format
+    dateGtInput.value = dateGt;
+    dateLtInput.value = dateLt;
 
   </script>
 {% endblock %}

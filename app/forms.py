@@ -72,4 +72,3 @@ class FilterForm(FlaskForm):
     date_gt = DateField("After", validators=(Optional(),))
     date_lt = DateField("Before", validators=(Optional(),))
     submit = SubmitField("Apply filters")
-# TODO: work out how to create an Other field with a hover-over
