@@ -18,9 +18,10 @@
   {% endif %}
   
   <div id="topDonorGraph" style="width:1300px;height:600px;"></div>
-  TODO: top donors
-  TODO: donation makeup bar chart
-  TODO: filters for the above
+
+  <div id="donationSourcesGraph" style="width:800px;height:600px;"></div>
+
+  TODO: filters, primarily date
   TODO: a link to see all gifts (basically just to index with the appropriate filters)
     
   
@@ -32,9 +33,18 @@
     var topDonorGraphData = {{ top_donor_graph | safe }};
     Plotly.newPlot(topDonorGraph, topDonorGraphData);
 
+    var donationSourcesGraph = document.getElementById('donationSourcesGraph');
+    var donationSourcesGraphData = {{ donation_sources_graph | safe }};
+    Plotly.newPlot(donationSourcesGraph, donationSourcesGraphData);
+
     // Rotate Y axis title
     var yTitle = document.querySelector('.ytitle');
     yTitle.setAttribute('transform', 'rotate(0,' + yTitle.getAttribute('x') + ',' + yTitle.getAttribute('y') + ')');
+
+    // Disable legend interactivity
+    document.querySelectorAll('.legendtoggle').forEach(function(toggle) {
+      toggle.style.pointerEvents = 'none';
+    });
 
   </script>
 {% endblock %}

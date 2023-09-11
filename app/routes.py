@@ -44,6 +44,14 @@ OTHER_DONATION_TYPES = [
 ]
 DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
 
+DONOR_TYPE_COLOURS = {
+    "Individual": "indigo",
+    "Company": "slateblue",
+    "Limited Liability Partnership": "seagreen",
+    "Trade Union": "hotpink",
+    "Unincorporated Association": "yellow",
+}
+
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
@@ -235,7 +243,7 @@ def recipient(id):
         OTHER_DONOR_TYPES, "donor_type_", Donor.donor_type_id
     )
 
-    query = (
+    top_donor_query = (
         db.session.query(
             DonorAlias.name,
             Donor.donor_type_id,
@@ -256,25 +264,20 @@ def recipient(id):
         .all()
     )
 
-    donor_type_colour_assignment = {
-        "Individual": "blue",
-        "Company": "blue",
-        "Limited Liability Partnership": "blue",
-        "Trade Union": "red",
-        "Unincorporated Association": "yellow",
-    }
-
-    top_donors = [record[0] for record in query]
-    donor_type = [record[1] for record in query]
-    donor_type_colours = []
-    for record in query:
-        if record[1] in donor_type_colour_assignment.keys():
-            donor_type_colours.append(donor_type_colour_assignment[record[1]])
+    top_donors = [record[0] for record in top_donor_query]
+    donor_type, relevant_types = [], {}
+    for record in top_donor_query:
+        if record[1] in DONOR_TYPE_COLOURS:
+            donor_type.append(DONOR_TYPE_COLOURS[record[1]])
+            if DONOR_TYPE_COLOURS[record[1]] not in relevant_types:
+                relevant_types[record[1]] = DONOR_TYPE_COLOURS[record[1]]
         else:
-            donor_type_colours.append("black")
-    donations = [record[2] for record in query]
-    first_gift = [record[3] for record in query]
-    latest_gift = [record[4] for record in query]
+            donor_type.append("black")
+            if "Other" not in relevant_types:
+                relevant_types["Other"] = "black"
+    donations = [record[2] for record in top_donor_query]
+    first_gift = [record[3] for record in top_donor_query]
+    latest_gift = [record[4] for record in top_donor_query]
 
     top_donor_graph = go.Figure(
         data=[
@@ -284,34 +287,102 @@ def recipient(id):
                 customdata=list(zip(first_gift, latest_gift)),
                 hovertemplate="£%{y:.4s}"
                 "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
-                marker_color=donor_type_colours,
+                marker_color=donor_type,
+                showlegend=False,
             ),
         ],
         layout={
             "title": "Top Donors",
             "xaxis": {"title": "", "range": [-0.5, 10.5]},
-            # "xaxis_hoverformat": "%b %Y",
             "yaxis": {"title": "£", "type": "linear"},
             "legend": {
-                "x": 0.01,
-                "y": 0.99,
+                "x": 0,
+                "y": 1.02,
                 "bgcolor": "rgba(255,255,255,0)",
                 "bordercolor": "rgba(255,255,255,0)",
+                "orientation": "h",
+                "yanchor": "bottom",
             },
             "hovermode": "closest",
         },
     )
-    top_donor_graph.update_xaxes()
-    top_donor_graph.update_yaxes()
-    top_donor_graph.update_traces()
 
-    print(top_donor_graph)
+    for donor_type, colour in relevant_types.items():
+        top_donor_graph.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                name=donor_type,
+                marker_color=colour,
+                line={"color": "rgba(0,0,0,0.0)"},
+                marker={"size": 80},
+            ),
+        )
+
+    donation_sources_query = (
+        db.session.query(
+            Donor.donor_type_id, db.func.sum(Donation.value).label("donations")
+        )
+        .join(Donation)
+        .join(DonationType)
+        .join(Recipient)
+        .filter(Recipient.name == recipient.name)
+        .filter(db.not_(db.or_(*donation_type_filter_statements)))
+        .filter(db.not_(db.or_(*donor_type_filter_statements)))
+        .group_by(Donor.donor_type_id)
+        .order_by(db.desc("donations"))
+        .all()
+    )
+
+    sources = [record[0] for record in donation_sources_query]
+    donations_by_source = [record[1] for record in donation_sources_query]
+    donor_type, relevant_types = [], {}
+    for record in donation_sources_query:
+        if record[0] in DONOR_TYPE_COLOURS:
+            donor_type.append(DONOR_TYPE_COLOURS[record[0]])
+            if DONOR_TYPE_COLOURS[record[0]] not in relevant_types:
+                relevant_types[record[0]] = DONOR_TYPE_COLOURS[record[0]]
+        else:
+            donor_type.append("black")
+            if "Other" not in relevant_types:
+                relevant_types["Other"] = "black"
+
+    donation_sources_graph = go.Figure(
+        data=[
+            go.Bar(
+                x=donations_by_source,
+                y=sources,
+                showlegend=False,
+                hovertemplate="£%{x:.4s}<extra></extra>",
+                orientation="h",
+                marker_color=donor_type,
+            ),
+        ],
+        layout={
+            "title": "Source of funds",
+            "yaxis": {"title": "", "autorange": "reversed"},
+            "xaxis": {
+                "title": "£",
+                "type": "linear",
+            },
+            # "legend": {
+            #     "x": 0,
+            #     "y": 1.02,
+            #     "bgcolor": "rgba(255,255,255,0)",
+            #     "bordercolor": "rgba(255,255,255,0)",
+            #     "orientation": "h",
+            #     "yanchor": "bottom",
+            # },
+            # "hovermode": "closest",
+        },
+    )
 
     return render_template(
         "recipient.html",
         title=title,
         recipient=recipient,
         top_donor_graph=top_donor_graph.to_json(),
+        donation_sources_graph=donation_sources_graph.to_json(),
     )
 
 
