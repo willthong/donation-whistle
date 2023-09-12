@@ -44,6 +44,8 @@ OTHER_DONATION_TYPES = [
 ]
 DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
 
+DEFAULT_FILTERS_NO_RECIPIENTS = "&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
+
 DONOR_TYPE_COLOURS = {
     "Individual": "indigo",
     "Company": "slateblue",
@@ -404,6 +406,11 @@ def recipient(id):
         range=(-0.5, 2.5), constrain="domain", ticksuffix=" "
     )
 
+    # Prepare filter_list for link to full donations list
+    filter_list = "?filter=recipient_"
+    filter_list += recipient.name.lower().replace(" ", "_")
+    filter_list += DEFAULT_FILTERS_NO_RECIPIENTS
+
     return render_template(
         "recipient.html",
         title=title,
@@ -411,6 +418,7 @@ def recipient(id):
         top_donor_graph=top_donor_graph.to_json(),
         donation_sources_graph=donation_sources_graph.to_json(),
         form=form,
+        filter_list=filter_list,
     )
 
 

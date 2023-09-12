@@ -8,7 +8,7 @@
 
 {% block app_content %}
 
-  <h1>Recipient detail: {{ recipient.name }}
+  <h1>Recipient detail: {{ recipient.name }}<br>
   </h1>
   {% if recipient.deregistered %}
     <p>
@@ -16,21 +16,33 @@
       %Y") }}
     </p>
   {% endif %}
+
+
+  <div class="row">
+    <div class="col-3">
+      <button type="button" class="btn btn-secondary" onclick="seeAllGifts()">See
+        all gifts</button>
+    </div>
+    <div class="col-3">
+      <form action="/recipient/{{ recipient.id }}" method="POST"> {{ form.csrf_token }}
+        <strong>Dates</strong><br>
+        {{ form.date_gt.label }}: {{ form.date_gt(size=20) }} <br>
+      {{ form.date_lt.label }}: {{ form.date_lt(size=20) }} <br><br>
+      <button type="submit" class="btn btn-primary" >Apply filters</button> 
+      </form>
+    </div>
+
+  </div>
   
-  <div id="topDonorGraph" style="width:1300px;height:600px;"></div>
+  <div class="row">
+    <div id="topDonorGraph" style="width:1300px;height:600px;"></div>
+  </div>
 
   <div class="row">
     <div class="col-6">
       <div id="donationSourcesGraph" style="width:500px;height:300px;">
       </div>
     </div>
-    <div class="col-6">
-      <form action="/recipient/{{ recipient.id }}" method="POST"> {{ form.csrf_token }}
-        <strong>Dates</strong><br>
-        {{ form.date_gt.label }}: {{ form.date_gt(size=20) }} <br>
-        {{ form.date_lt.label }}: {{ form.date_lt(size=20) }} <br><br>
-        <button type="submit" class="btn btn-primary" >Apply filters</button> 
-      </form>
     </div>
   </div>
 
@@ -58,15 +70,19 @@
       toggle.style.pointerEvents = 'none';
     });
 
-    // Update ates to mmatch URL
+    var filter_url = '{{ url_for('index') }}' + '{{ filter_list | safe }}';
+
+    // Update dates to match URL
     const urlParams = new URLSearchParams(window.location.search);
     var dateGt = "";
     var dateLt = "";
 
     urlParams.forEach((value, key) => {
       if (key.includes('filter') && value.includes('date_gt_')) {
+        filter_url = filter_url + '&filter=' + value
         dateGt = value.replace('date_gt_', '');
       } else if (key.includes('filter') && value.includes('date_lt_')) {
+        filter_url = filter_url + '&filter=' + value
         dateLt = value.replace('date_lt_', '');
       }
     });
@@ -78,6 +94,11 @@
     // Set the input fields' values from the URL parameters, converting the format
     dateGtInput.value = dateGt;
     dateLtInput.value = dateLt;
+
+    function seeAllGifts() {
+      window.location.href = filter_url; return false;
+    };
+
 
   </script>
 {% endblock %}
