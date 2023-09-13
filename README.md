@@ -17,7 +17,9 @@ re-export to CSV, visualise and publicly publish the data.
 ## Usage
 
 ```
-python3 donation_scraper.py
+poetry update
+poetry shell
+flask run donation_scraper.py
 
 ```
 
@@ -29,10 +31,10 @@ python3 donation_scraper.py
   (exclude double-reported gifts)
 * [X] User accounts
 * [X] Define aliases UI
-* [ ] Simple import UI
 * [X] Allow exploration of data (tabular), including with 'sane default' filters
   (group aliases, including trade unions; exclude public funds)
-* [ ] Allow exploration of data (graphical)
+* [X] Allow exploration of data (graphical)
+* [ ] Simple import UI
 * [ ] Data export as CSV
 * [ ] Data import UI (including async import and progress bar)
 * [ ] Alias import/export
@@ -43,8 +45,6 @@ python3 donation_scraper.py
 
 Pull requests are welcome. For major changes, please open an issue first
 to discuss what you would like to change.
-
-Please make sure to update tests as appropriate.
 
 ## License
 
