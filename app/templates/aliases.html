@@ -17,7 +17,7 @@
     (ie reset the relevant donors back to individual donors) or amend or reset them.
   </p>
 
-  <a href="{{ url_for('create_new_alias') }}">
+  <a href="{{ url_for('alias.create_new_alias') }}">
     <button type="button" class="btn btn-primary" >
       Create new alias
     </button>
@@ -29,7 +29,7 @@
     <ul>
       {% for alias in grouped_aliases %}
         <li>
-          <a href="{{ url_for("alias", id=alias.id) }}">{{ alias.name }}</a>,
+          <a href="{{ url_for("alias.alias", id=alias.id) }}">{{ alias.name }}</a>,
           which refers to:</li>
           <ul>
             {% for donor in alias.donors %}

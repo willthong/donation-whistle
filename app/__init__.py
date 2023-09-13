@@ -6,6 +6,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -14,5 +15,11 @@ db = SQLAlchemy(app)
 login = LoginManager(app)
 login.login_view = "login"
 migrate = Migrate(app, db)
+
+from app.alias import bp as alias_bp
+app.register_blueprint(alias_bp, url_prefix="/alias")
+
+from app.api import bp as api_bp
+app.register_blueprint(api_bp, url_prefix="/api")
 
 from app import routes, models

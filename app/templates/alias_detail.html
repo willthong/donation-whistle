@@ -23,7 +23,7 @@
     </div>
   </div>
 
-  <a href="{{ url_for('delete_alias', id=alias.id) }}">
+  <a href="{{ url_for('alias.delete_alias', id=alias.id) }}">
     <button type="button" class="btn btn-primary" >
       Delete alias
     </button>
@@ -35,7 +35,7 @@
 
   {% for donor in alias.donors %}
     <h2> {{ donor.name }} </h2>
-    <p><a href="{{ url_for("remove_alias", alias_id=alias.id, donor_id=donor.id) }}">Remove donor from alias</a></p>
+    <p><a href="{{ url_for("alias.remove_alias", alias_id=alias.id, donor_id=donor.id) }}">Remove donor from alias</a></p>
       <table class="table">
       <thead>
         <th scope="col">Recipient</th>
