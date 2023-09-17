@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block head %}
+  {{ super() }}
+    <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block app_content %}
+
+  <h1>Donor detail: {{ donor.name }}<br>
+  </h1>
+
+  <p>
+    Donor type: {{ donor.donors }}
+  </p>
+
+  <div class="row">
+    <div id="giftsGraph" style="width:2000px;height:600px;"></div>
+  </div>
+
+  <div class="row">
+    <div id="table"></div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+  <script type="module">
+    import { Grid, html } from "https://unpkg.com/gridjs?module";
+
+
+    const updateUrl = (prev, query) => {
+      // Check if "?" exists in the prev string. If so, find its position. If that
+      // position is >= 0, append &, otherwise append ?
+      return prev + (prev.indexOf("?") >= 0 ? "&" : "?") + new URLSearchParams(query).toString();
+    };
+
+    const currencyFormatter = (value) => new Intl.NumberFormat(
+      'en-GB', 
+      { 
+        style: 'currency', 
+        currency: 'GBP', 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }
+    ).format(value);
+    const dateFormatter = (value) => {
+      const timestamp = new Date(value);
+      const day = timestamp.getUTCDate().toString().padStart(2, '0');
+      const month = (timestamp.getUTCMonth() + 1).toString().padStart(2, '0');
+      const year = timestamp.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    // Assign filterUrl so that date filters will carry through to recipient pages
+    const recipientFormatter = (recipientName, recipientId) => {
+      var printName = recipientName;
+      var filterAddons = "?{{ api_filter | safe }}"
+      if (recipientName == 'Conservative and Unionist Party') {var printName = 'Conservative Party';}
+      if (recipientName == 'UK Independence Party (UKIP)') {var printName = 'UKIP';}
+      if (recipientName == 'Scottish National Party (SNP)') {var printName = 'SNP';}
+      return html(`<a href='{{ url_for("recipient_dummy") }}/${recipientId}${filterAddons}'> ${printName} </a>`);
+    }
+
+    new Grid({
+      columns: [
+        { id: 'recipient', 
+          sort: false,
+          name: 'Recipient', 
+          formatter: (_, row) => recipientFormatter(row.cells[0].data, row.cells[5].data) 
+        },
+        { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
+        { id: 'type', name: 'Donation Type', sort: false, },
+        { id: 'amount', name: 'Amount', formatter: (cell) => currencyFormatter(cell) },
+        { 
+          id: 'legacy', 
+          name: 'Legacy', 
+          sort: false,
+          formatter: function (cell) { 
+            return cell ? "✅" : "❌";
+          }
+        },
+        { id: 'recipient_id', hidden: true }
+      ],
+      server: {
+        url: '/api/data?filter=donor_alias_{{ donor.id }}',
+        then: results => results.data,
+        total: results => results.total,
+      },
+      search: false,
+      sort: {
+        enabled: true,
+        multiColumn: true,
+        server: {
+          url: (prev, columns) => {
+            const columnIds = ["recipient", "date", "type", "value" ]
+            const sort = columns.map(col => (
+              col.direction === 1 ? '+' : '-') + columnIds[col.index]
+            );
+            return updateUrl(prev, {sort});
+          },
+        },
+      },
+      pagination: {
+        enabled: true,
+        limit: 100,
+        server: {
+          url: (prev, page, limit) => {
+            return updateUrl(prev, {start: page * limit, length: limit})
+          },
+        },
+      },
+      resizable: true,
+    }).render(document.getElementById('table'));
+
+    var giftsGraph = document.getElementById('giftsGraph');
+    var giftsGraphData = {{ gifts_graph | safe }};
+    Plotly.newPlot(giftsGraph, giftsGraphData);
+
+    // Rotate Y axis title
+    //var yTitle = document.querySelector('.ytitle');
+    //yTitle.setAttribute('transform', 'rotate(0,' + yTitle.getAttribute('x') + ',' + yTitle.getAttribute('y') + ')');
+
+    // Disable legend interactivity
+    //document.querySelectorAll('.legendtoggle').forEach(function(toggle) {
+    //  toggle.style.pointerEvents = 'none';
+    //});
+
+    // var filter_url = '{{ url_for('index') }}' + "{{ filter_list | safe }}";
+
+    // Update dates to match URL
+    // const urlParams = new URLSearchParams(window.location.search);
+    // var dateGt = dateLt = "";
+
+    // urlParams.forEach((value, key) => {
+    //   if (key.includes('filter') && value.includes('date_gt_')) {
+    //     filter_url = filter_url + '&filter=' + value
+    //     dateGt = value.replace('date_gt_', '');
+    //   } else if (key.includes('filter') && value.includes('date_lt_')) {
+    //     filter_url = filter_url + '&filter=' + value
+    //     dateLt = value.replace('date_lt_', '');
+    //   }
+    // });
+
+    // // Get references to the input fields
+    // const dateGtInput = document.getElementById('date_gt');
+    // const dateLtInput = document.getElementById('date_lt');
+
+    // // Set the input fields' values from the URL parameters, converting the format
+    // dateGtInput.value = dateGt;
+    // dateLtInput.value = dateLt;
+
+    // function seeAllGifts() {
+    //   window.location.href = filter_url; return false;
+    // };
+
+    // TODO: reset filters button
+
+  </script>
+{% endblock %}

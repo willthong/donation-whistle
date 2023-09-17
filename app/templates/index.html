@@ -91,10 +91,7 @@
 
 {% block scripts %}
   <script type="module">
-    import {
-      Grid,
-      html
-    } from "https://unpkg.com/gridjs?module";
+    import { Grid, html } from "https://unpkg.com/gridjs?module";
     const updateUrl = (prev, query) => {
       // Check if "?" exists in the prev string. If so, find its position. If that
       // position is >= 0, append &, otherwise append ?
@@ -116,11 +113,18 @@
       const year = timestamp.getUTCFullYear();
       return `${day}/${month}/${year}`;
     }
-    const recipientFormatter = (value) => {
-      if (value == "Conservative and Unionist Party") {return "Conservative Party";}
-      if (value == "UK Independence Party (UKIP)") {return "UKIP";}
-      if (value == "Scottish National Party (SNP)") {return "SNP";}
-      return value;
+
+    const donorFormatter = (donorName, donorId) => {
+      return html(`<a href='donor/${donorId}'> ${donorName}</a>`);
+    }
+    // Assign filterUrl so that date filters will carry through to recipient pages
+    const recipientFormatter = (recipientName, recipientId) => {
+      var printName = recipientName;
+      var filterAddons = "?{{ api_filter | safe }}"
+      if (recipientName == 'Conservative and Unionist Party') {var printName = 'Conservative Party';}
+      if (recipientName == 'UK Independence Party (UKIP)') {var printName = 'UKIP';}
+      if (recipientName == 'Scottish National Party (SNP)') {var printName = 'SNP';}
+      return html(`<a href='recipient/${recipientId}${filterAddons}'> ${printName} </a>`);
     }
     const donorTypeFormatter = (value) => {
       if (value == "Limited Liability Partnership") {return "LLP";}
@@ -156,17 +160,22 @@
 
     new Grid({
       columns: [
-        { id: 'donor', name: 'Donor', formatter: (cell) => html(`${cell}`) },
+        { 
+          id: 'donor', 
+          name: 'Donor', 
+          formatter: (_, row) => donorFormatter(row.cells[0].data, row.cells[8].data)
+        },
         { 
           id: 'donor_type', 
           sort: false, 
           name: 'Donor Type', 
           formatter: (cell) => donorTypeFormatter(cell)
         },
-        { id: 'recipient', 
+        { 
+          id: 'recipient', 
           sort: false,
           name: 'Recipient', 
-          formatter: (cell) => recipientFormatter(cell) 
+          formatter: (_, row) => recipientFormatter(row.cells[2].data, row.cells[7].data) 
         },
         { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
         { id: 'type', name: 'Donation Type', sort: false, },
@@ -179,6 +188,8 @@
             return cell ? "✅" : "❌";
           }
         },
+        { id: 'recipient_id', hidden: true },
+        { id: 'alias_id', hidden: true },
       ],
       server: {
         url: '/api/data?{{ api_filter|safe }}',
@@ -223,7 +234,9 @@
 
     // Tooltip activation
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    const tooltipList = [...tooltipTriggerList].map(
+      tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl)
+    )
   </script>
 
 {% endblock %}

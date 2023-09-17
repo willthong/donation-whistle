@@ -102,6 +102,7 @@ class Donation(db.Model):
             "donor_type": self.donor.donor_type_id,
             "alias_id": self.donor.donor_alias.id,
             "recipient": self.recipient.name,
+            "recipient_id": self.recipient.id,
             "date": self.date,
             "type": self.donation_type.name,
             "amount": self.value,

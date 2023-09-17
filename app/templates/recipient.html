@@ -46,9 +46,6 @@
     </div>
   </div>
 
-  TODO: a link to see all gifts (basically just to index with the appropriate filters)
-    
-  
 {% endblock %}
 
 {% block scripts %}
@@ -70,12 +67,11 @@
       toggle.style.pointerEvents = 'none';
     });
 
-    var filter_url = '{{ url_for('index') }}' + '{{ filter_list | safe }}';
+    var filter_url = '{{ url_for('index') }}' + "{{ filter_list | safe }}";
 
     // Update dates to match URL
     const urlParams = new URLSearchParams(window.location.search);
-    var dateGt = "";
-    var dateLt = "";
+    var dateGt = dateLt = "";
 
     urlParams.forEach((value, key) => {
       if (key.includes('filter') && value.includes('date_gt_')) {
@@ -99,6 +95,7 @@
       window.location.href = filter_url; return false;
     };
 
+    // TODO: reset filters button
 
   </script>
 {% endblock %}

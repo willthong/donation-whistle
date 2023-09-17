@@ -50,6 +50,14 @@ DONOR_TYPE_COLOURS = {
     "Limited Liability Partnership": "seagreen",
     "Trade Union": "hotpink",
     "Unincorporated Association": "yellow",
+    "Other": "black",
+}
+
+PARTY_COLOURS = {
+    "Conservative and Unionist Party": "rgb(0, 135, 220)",
+    "Labour Party": "rgb(228, 0, 59)",
+    "Liberal Democrats": "rgb(255, 159, 26)",
+    "Reform UK": "rgb(0, 146, 180)",
 }
 
 
@@ -116,6 +124,33 @@ def apply_date_filters(query, all_filters):
     return query
 
 
+def assign_colours_to_donor_types(query, index):
+    """Takes a query and the donor type's relevant index. Assigns each record in that
+    query according to the DONOR_TYPE_COLOURS variable. Returns a list of the donor type
+    colours and a dictionary with duplicates removed for the key."""
+    donor_type, relevant_types = [], {}
+    for record in query:
+        if record[index] in DONOR_TYPE_COLOURS:
+            donor_type.append(DONOR_TYPE_COLOURS[record[index]])
+            if DONOR_TYPE_COLOURS[record[index]] not in relevant_types:
+                relevant_types[record[index]] = DONOR_TYPE_COLOURS[record[index]]
+        if record[index] not in DONOR_TYPE_COLOURS:
+            donor_type.append("black")
+            relevant_types["Other"] = "black"
+    return donor_type, relevant_types
+
+
+@app.route(
+    "/recipient",
+    methods=[
+        "GET",
+    ],
+)
+def recipient_dummy():
+    # Dummy route to allow for URL construction
+    pass
+
+
 @app.route("/recipient/<int:id>", methods=["GET", "POST"])
 def recipient(id):
     recipient = db.get_or_404(Recipient, id)
@@ -167,16 +202,7 @@ def recipient(id):
     top_donor_query = top_donor_query.limit(100).all()
 
     top_donors = [record[0] for record in top_donor_query]
-    donor_type, relevant_types = [], {}
-    for record in top_donor_query:
-        if record[1] in DONOR_TYPE_COLOURS:
-            donor_type.append(DONOR_TYPE_COLOURS[record[1]])
-            if DONOR_TYPE_COLOURS[record[1]] not in relevant_types:
-                relevant_types[record[1]] = DONOR_TYPE_COLOURS[record[1]]
-        else:
-            donor_type.append("black")
-            if "Other" not in relevant_types:
-                relevant_types["Other"] = "black"
+    donor_type, relevant_types = assign_colours_to_donor_types(top_donor_query, 1)
     donations = [record[2] for record in top_donor_query]
     first_gift = [record[3] for record in top_donor_query]
     latest_gift = [record[4] for record in top_donor_query]
@@ -239,16 +265,9 @@ def recipient(id):
 
     sources = [record[0] for record in donation_sources_query]
     donations_by_source = [record[1] for record in donation_sources_query]
-    donor_type, relevant_types = [], {}
-    for record in donation_sources_query:
-        if record[0] in DONOR_TYPE_COLOURS:
-            donor_type.append(DONOR_TYPE_COLOURS[record[0]])
-            if DONOR_TYPE_COLOURS[record[0]] not in relevant_types:
-                relevant_types[record[0]] = DONOR_TYPE_COLOURS[record[0]]
-        else:
-            donor_type.append("black")
-            if "Other" not in relevant_types:
-                relevant_types["Other"] = "black"
+    donor_type, relevant_types = assign_colours_to_donor_types(
+        donation_sources_query, 0
+    )
 
     donation_sources_graph = go.Figure(
         data=[
@@ -292,6 +311,110 @@ def recipient(id):
     )
 
 
+def assign_colours_to_parties(party):
+    if party in PARTY_COLOURS:
+        return PARTY_COLOURS[party]
+    return "black"
+
+
+@app.route("/donor/<int:id>", methods=["GET", "POST"])
+def donor(id):
+    """This is ultimately a user-facing view of aliases"""
+    donor = db.get_or_404(DonorAlias, id)
+    title = donor.name
+
+    form = FilterForm()
+
+    if form.validate_on_submit():
+        filter_list = []
+        if request.form["date_gt"]:
+            filter_list.append("date_gt_" + request.form["date_gt"])
+        if request.form["date_lt"]:
+            filter_list.append("date_lt_" + request.form["date_lt"])
+        return redirect(
+            url_for(
+                "donor",
+                id=id,
+            )
+        )
+
+    all_filters = request.args.getlist("filter")
+
+    # Total giving over time bar graph. Split bars for different parties
+    gifts_query = (
+        db.session.query(
+            Recipient.name,
+            db.func.strftime("%Y", Donation.date).label("year"),
+            db.func.sum(Donation.value),
+        )
+        .join(Donor.donations)
+        .join(Recipient)
+        .join(DonorAlias)
+        .where(DonorAlias.name == donor.name)
+        .order_by(Donation.date)
+        .group_by("year", Recipient.name)
+    ).all()
+
+    bar_names = list(set([record[0] for record in gifts_query]))
+    dates = [record[1] for record in gifts_query]
+    start_year, end_year, date_series = int(dates[0]), int(dates[-1]), []
+    while start_year <= end_year:
+        date_series.append(start_year)
+        start_year += 1
+
+    parties = {}
+    for key in bar_names:
+        parties[key] = [0 for i in range(0, len(date_series))]
+    for record in gifts_query:
+        date = int(record[1])
+        index = date_series.index(date)
+        parties = update_party_sums(parties, index, record[0], record[2])
+
+    bars = []
+    for i in bar_names:
+        party_colour = assign_colours_to_parties(i)
+        bars.append(
+            go.Bar(
+                name=i,
+                x=date_series,
+                y=parties[i],
+                hovertemplate="£%{y:.4s}",
+                marker_color=party_colour,
+            )
+        )
+
+    # Assign colours
+    gifts_graph = go.Figure(
+        data=bars,
+        layout={
+            "xaxis": {
+                "title": "",
+                "dtick": 1,
+            },
+            "yaxis": {
+                "title": "£",
+                "type": "linear",
+            },
+        },
+    )
+
+    return render_template(
+        "donor.html",
+        title=title,
+        donor=donor,
+        form=form,
+        gifts_graph=gifts_graph.to_json(),
+    )
+
+
+def update_party_sums(parties, index, party_name, value):
+    if party_name in parties.keys():
+        parties[party_name][index] = value
+        return parties
+    parties["All other parties"][index] += value
+    return parties
+
+
 @app.route("/stats/recipients")
 def recipient_stats():
     # Generate dates
@@ -311,8 +434,7 @@ def recipient_stats():
 
     # Monthly is the smallest useful aggregation, so it's most
     # efficient to do (and cache) that aggregation on the server, with extra binning
-    # done by Plotly
-    # Donor still required in order to filter donor types
+    # done by Plotly Donor still required in order to filter donor types
     query = (
         db.session.query(
             Recipient.name,
@@ -329,25 +451,19 @@ def recipient_stats():
     )
 
     parties = {}
-
-    parties["Conservative and Unionist Party"] = [0 for i in range(0, len(date_series))]
-    parties["Labour Party"] = [0 for i in range(0, len(date_series))]
-    parties["Liberal Democrats"] = [0 for i in range(0, len(date_series))]
-    parties["Reform UK"] = [0 for i in range(0, len(date_series))]
-    parties["All other parties"] = [0 for i in range(0, len(date_series))]
+    for key in [
+        "Conservative and Unionist Party",
+        "Labour Party",
+        "Liberal Democrats",
+        "Reform UK",
+        "All other parties",
+    ]:
+        parties[key] = [0 for i in range(0, len(date_series))]
 
     for record in query:
         date = datetime.strptime(record[1], "%Y-%m").date()
         index = date_series.index(date)
-        if record[0] not in [
-            "Conservative and Unionist Party",
-            "Labour Party",
-            "Liberal Democrats",
-            "Reform UK",
-        ]:
-            parties["All other parties"][index] += round(record[2], 2)
-        else:
-            parties[record[0]][index] = round(record[2], 2)
+        parties = update_party_sums(parties, index, record[0], round(record[2], 2))
 
     yview_args = [
         {"xbins.size": "M12"},
