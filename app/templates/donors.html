@@ -1,0 +1,99 @@
+
+{% extends "base.html" %}
+
+{% block head %}
+  {{ super() }}
+    <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block app_content %}
+
+  <h1>All donors<br>
+  </h1>
+
+  <div class="row">
+    <div id="topDonorGraph" style="width:4000px;height:600px;"></div>
+  </div>
+
+  <div class="row">
+    <div id="table"></div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+  <script type="module">
+    import { Grid, html } from "https://unpkg.com/gridjs?module";
+    const donorFormatter = (donorName, donorId) => {
+      return html(`<a href='donor/${donorId}'> ${donorName} </a>`);
+    }
+
+    const currencyFormatter = (value) => new Intl.NumberFormat(
+      'en-GB', 
+      { 
+        style: 'currency', 
+        currency: 'GBP', 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }
+    ).format(value);
+    const dateFormatter = (value) => {
+      const timestamp = new Date(value);
+      const day = timestamp.getUTCDate().toString().padStart(2, '0');
+      const month = (timestamp.getUTCMonth() + 1).toString().padStart(2, '0');
+      const year = timestamp.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    new Grid({
+      data: [ {{ top_donors|safe }} ],
+      columns: [
+        { id: 'Donor', 
+          sort: true,
+          name: 'Donor', 
+          formatter: (_, row) => donorFormatter(row.cells[0].data, row.cells[1].data)
+        },
+        { id: 'donor_id', hidden: true},
+        { id: 'type', name: 'Donor Type', sort: false, },
+        { id: 'amount', name: 'All time donations', formatter: (cell) => currencyFormatter(cell) },
+        { 
+          id: 'first_gift', 
+          name: 'First gift', 
+          sort: true, 
+          formatter: (cell) => dateFormatter(cell) ,
+        },
+        { 
+          id: 'last_gift', 
+          name: 'Most recent gift', 
+          sort: true, 
+          formatter: (cell) => dateFormatter(cell) ,
+        },
+      ],
+      search: true,
+      sort: {
+        enabled: true,
+        multiColumn: true,
+      },
+      pagination: {
+        enabled: true,
+        limit: 100,
+      },
+      resizable: true,
+    }).render(document.getElementById('table'));
+
+    var topDonorGraph = document.getElementById('topDonorGraph');
+    var topDonorGraphData = {{ top_donor_graph | safe }};
+    Plotly.newPlot(topDonorGraph, topDonorGraphData);
+
+    // Rotate Y axis title
+    var yTitle = document.querySelector('.ytitle');
+    yTitle.setAttribute('transform', 'rotate(0,' + yTitle.getAttribute('x') + ',' + yTitle.getAttribute('y') + ')');
+
+    // Disable legend interactivity
+    document.querySelectorAll('.legendtoggle').forEach(function(toggle) {
+      toggle.style.pointerEvents = 'none';
+    });
+
+  </script>
+{% endblock %}

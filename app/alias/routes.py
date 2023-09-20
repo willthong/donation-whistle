@@ -65,18 +65,20 @@ def new_alias():
     if form.validate_on_submit():
         query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
         alias = db.session.execute(query).scalars().first()
-        if alias and form.alias_name.data not in [d.name for d in selected_donors]:
+        if (
+            alias and 
+            form.alias_name.data not in [d.name for d in selected_donors] and 
+            Donor.query.filter_by(name=form.alias_name.data).first()
+        ):
             # Only add a new alias if donors includes a donor with the proposed name, otherwise
             # it'll be orphaning a different donor.
             flash("That alias name is already taken.")
             return redirect(
                 url_for(
-                    "alias.new",
+                    "alias.new_alias",
                     selected_donors=request.args.get("selected_donors"),
                 )
             )
-            # TODO: fix the bug where you try to use a new alias name which corresponds
-            # to an existing alias
         alias = DonorAlias(
             name=form.alias_name.data,
             note=form.note.data,

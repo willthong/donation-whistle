@@ -60,6 +60,14 @@ PARTY_COLOURS = {
     "Reform UK": "rgb(0, 146, 180)",
 }
 
+MAIN_PARTIES = [
+    "Conservative and Unionist Party",
+    "Labour Party",
+    "Liberal Democrats",
+    "Reform UK",
+    "All other parties",
+]
+
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
@@ -232,6 +240,7 @@ def recipient(id):
                 "yanchor": "bottom",
             },
             "hovermode": "closest",
+            "font_family": "'Helvetica Neue', 'Open Sans', Arial",
         },
     )
 
@@ -289,6 +298,7 @@ def recipient(id):
                 "title": "£",
                 "type": "linear",
             },
+            "font_family": "'Helvetica Neue', 'Open Sans', Arial",
         },
     )
     donation_sources_graph.update_yaxes(
@@ -320,8 +330,8 @@ def assign_colours_to_parties(party):
 @app.route("/donor/<int:id>", methods=["GET", "POST"])
 def donor(id):
     """This is ultimately a user-facing view of aliases"""
-    donor = db.get_or_404(DonorAlias, id)
-    title = donor.name
+    alias = db.get_or_404(DonorAlias, id)
+    title = alias.name
 
     form = FilterForm()
 
@@ -350,7 +360,7 @@ def donor(id):
         .join(Donor.donations)
         .join(Recipient)
         .join(DonorAlias)
-        .where(DonorAlias.name == donor.name)
+        .where(DonorAlias.name == alias.name)
         .order_by(Donation.date)
         .group_by("year", Recipient.name)
     ).all()
@@ -395,13 +405,14 @@ def donor(id):
                 "title": "£",
                 "type": "linear",
             },
+            "font_family": "'Helvetica Neue', 'Open Sans', Arial",
         },
     )
 
     return render_template(
         "donor.html",
         title=title,
-        donor=donor,
+        alias=alias,
         form=form,
         gifts_graph=gifts_graph.to_json(),
     )
@@ -415,8 +426,30 @@ def update_party_sums(parties, index, party_name, value):
     return parties
 
 
-@app.route("/stats/recipients")
-def recipient_stats():
+def convert_to_js_array(query):
+    """Accepts a query in the form of a list of lists. Applies escaping to the first
+    column. If it's not a float, it'll wrap it in ". Returns a JS-formatted array."""
+    output = ""
+    for record in query:
+        row = "["
+        for index, cell in enumerate(record):
+            if index == 0:
+                cell = cell.replace('"', '\\"')
+            try:
+                float(cell)
+            except:
+                cell = '"' + str(cell) + '"'
+            row += str(cell)
+            if index != len(record) - 1:
+                row += ", "
+        row += "], "
+        output += row
+    output = output.rstrip(", ")
+    return output
+
+
+@app.route("/recipients")
+def recipients():
     # Generate dates
     start_date = db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
     end_date = db.session.query(db.func.max(Donation.date)).first()[0]
@@ -435,11 +468,12 @@ def recipient_stats():
     # Monthly is the smallest useful aggregation, so it's most
     # efficient to do (and cache) that aggregation on the server, with extra binning
     # done by Plotly Donor still required in order to filter donor types
-    query = (
+    party_stats_query = (
         db.session.query(
             Recipient.name,
             db.func.strftime("%Y-%m", Donation.date).label("month"),
             db.func.sum(Donation.value),
+            Recipient.id,
         )
         .join(Recipient)
         .join(Donor)
@@ -451,16 +485,10 @@ def recipient_stats():
     )
 
     parties = {}
-    for key in [
-        "Conservative and Unionist Party",
-        "Labour Party",
-        "Liberal Democrats",
-        "Reform UK",
-        "All other parties",
-    ]:
+    for key in MAIN_PARTIES:
         parties[key] = [0 for i in range(0, len(date_series))]
 
-    for record in query:
+    for record in party_stats_query:
         date = datetime.strptime(record[1], "%Y-%m").date()
         index = date_series.index(date)
         parties = update_party_sums(parties, index, record[0], round(record[2], 2))
@@ -586,6 +614,7 @@ def recipient_stats():
                 "bordercolor": "rgba(255,255,255,0)",
             },
             "hovermode": "x",
+            "font_family": "'Helvetica Neue', 'Open Sans', Arial",
         },
     )
     figure.update_xaxes(
@@ -600,11 +629,112 @@ def recipient_stats():
     )
     figure.update_traces()
 
-    # Categories can be facetted subplots?
+    recipient_query = (
+        db.session.query(
+            Recipient.name,
+            Recipient.id,
+            db.func.sum(Donation.value).label("donations"),
+        )
+        .join(Donation)
+        .join(Donor)
+        .join(DonationType)
+        .where(db.not_(db.or_(*donation_type_filter_statements)))
+        .where(db.not_(db.or_(*donor_type_filter_statements)))
+        .group_by(Recipient.name)
+        .order_by(db.desc("donations"))
+    ).all()
+    recipients = convert_to_js_array(recipient_query)
 
     # Response
     return render_template(
-        "recipient_stats.html", title="Party statistics", figure=figure.to_json()
+        "recipients.html",
+        title="Recipients",
+        figure=figure.to_json(),
+        recipients=recipients,
+    )
+
+
+@app.route("/donors")
+def donors():
+    donation_type_filter_statements = populate_filter_statements(
+        OTHER_DONATION_TYPES, "donation_type_", DonationType.name
+    )
+    donor_type_filter_statements = populate_filter_statements(
+        OTHER_DONOR_TYPES, "donor_type_", Donor.donor_type_id
+    )
+
+    top_donor_query = (
+        db.session.query(
+            DonorAlias.name,
+            DonorAlias.id,
+            Donor.donor_type_id,
+            db.func.sum(Donation.value).label("donations"),
+            db.func.min(Donation.date).label("first_gift"),
+            db.func.max(Donation.date).label("latest_gift"),
+        )
+        .join(Donor, DonorAlias.id == Donor.donor_alias_id)
+        .join(Donation)
+        .join(DonationType)
+        .where(db.not_(db.or_(*donation_type_filter_statements)))
+        .where(db.not_(db.or_(*donor_type_filter_statements)))
+        .group_by(DonorAlias.name)
+        .order_by(db.desc("donations"))
+    ).all()
+    top_donors = convert_to_js_array(top_donor_query)
+
+    top_donor_bars = [record[0] for record in top_donor_query]
+    donor_type, relevant_types = assign_colours_to_donor_types(top_donor_query, 2)
+    donations = [record[3] for record in top_donor_query]
+    first_gift = [record[4] for record in top_donor_query]
+    latest_gift = [record[5] for record in top_donor_query]
+
+    top_donor_graph = go.Figure(
+        data=[
+            go.Bar(
+                x=top_donor_bars,
+                y=donations,
+                customdata=list(zip(first_gift, latest_gift)),
+                hovertemplate="£%{y:.4s}"
+                "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
+                marker_color=donor_type,
+                showlegend=False,
+            ),
+        ],
+        layout={
+            "title": "Biggest political donors (to all parties)",
+            "xaxis": {"title": "", "range": [-0.5, 10.5]},
+            "yaxis": {"title": "£", "type": "linear"},
+            "legend": {
+                "x": 0,
+                "y": 1.02,
+                "bgcolor": "rgba(255,255,255,0)",
+                "bordercolor": "rgba(255,255,255,0)",
+                "orientation": "h",
+                "yanchor": "bottom",
+            },
+            "hovermode": "closest",
+            "font_family": "'Helvetica Neue', 'Open Sans', Arial",
+        },
+    )
+
+    for donor_type, colour in relevant_types.items():
+        top_donor_graph.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                name=donor_type,
+                marker_color=colour,
+                line={"color": "rgba(0,0,0,0.0)"},
+                marker={"size": 80},
+            ),
+        )
+
+    # Response
+    return render_template(
+        "donors.html",
+        title="Donors",
+        top_donor_graph=top_donor_graph.to_json(),
+        top_donors=top_donors,
     )
 
 

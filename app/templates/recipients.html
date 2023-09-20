@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <head>
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
+  </head>
+{% endblock %}
+
+{% block app_content %}
+
+  <div id="graph" style="width:1300px;height:1000px;"></div>
+
+  <p> 
+    Note: these aggregations by default exclude donor types (building
+    societies, public funds, impermissible donors, unidentifiable funds and "N/A" as well
+    as donation types (public funds, exempt trusts, donor-exempt trusts, impermissible
+    donors and unidentified donors). These are either not really gifts, negligible
+    quantities or never benefit the party in question.
+  </p>
+
+  <h1>
+    All donors
+  </h1>
+
+  <div id="table"></div>
+
+{% endblock %}
+
+
+{% block scripts %}
+  <script type="module">
+    import { Grid, html } from "https://unpkg.com/gridjs?module";
+    const currencyFormatter = (value) => new Intl.NumberFormat(
+      'en-GB', 
+      { 
+        style: 'currency', 
+        currency: 'GBP', 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }
+    ).format(value);
+    // Assign filterUrl so that date filters will carry through to recipient pages
+    const recipientFormatter = (recipientName, recipientId) => {
+      var printName = recipientName;
+      if (recipientName == 'Conservative and Unionist Party') {var printName = 'Conservative Party';}
+      if (recipientName == 'UK Independence Party (UKIP)') {var printName = 'UKIP';}
+      if (recipientName == 'Scottish National Party (SNP)') {var printName = 'SNP';}
+      return html(`<a href='recipient/${recipientId}'> ${printName} </a>`);
+    }
+
+    new Grid({
+      data: [ {{ recipients|safe }} ],
+      columns: [
+        { 
+          id: 'recipient', 
+          name: 'Recipient', 
+          formatter: (_, row) => recipientFormatter(row.cells[0].data, row.cells[1].data) 
+        },
+        { id: 'recipient_id', hidden: true },
+        { id: 'amount', name: 'All time donations', formatter: (cell) => currencyFormatter(cell) },
+      ],
+      search: false,
+      sort: false,
+      pagination: {
+        enabled: true,
+        limit: 50,
+      },
+      resizable: true,
+    }).render(document.getElementById('table'));
+    
+    var graph = document.getElementById('graph');
+    var figureData = {{ figure | safe }};
+    Plotly.newPlot(graph, figureData);
+
+    // Rotate Y axis title
+    var yTitle = document.querySelector('.ytitle');
+    yTitle.setAttribute('transform', 'rotate(0,' + yTitle.getAttribute('x') + ',' + yTitle.getAttribute('y') + ')');
+
+  </script>
+{% endblock %}
+

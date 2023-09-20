@@ -8,12 +8,30 @@
 
 {% block app_content %}
 
-  <h1>Donor detail: {{ donor.name }}<br>
+  <h1>Donor detail: {{ alias.name }}<br>
   </h1>
 
-  <p>
-    Donor type: {{ donor.donors }}
-  </p>
+  {% if alias.donors|length > 1 %}<p>
+    This donor is known by several names: 
+      <ul>
+        {% for donor in alias.donors %}
+        <li> {{ donor.name }}
+        {% endfor %}
+      </ul>
+    </p>
+    <p>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('alias.alias', id=alias.id) }}">
+        <button type="button" class="btn btn-primary" >
+          Edit this alias
+        </button>
+      </a>
+    {% else %}
+      Only administrators are permitted to edit these aliases. If you are one, you can
+      log in here.
+    {% endif %}
+    </p>
+  {% endif %}
 
   <div class="row">
     <div id="giftsGraph" style="width:2000px;height:600px;"></div>
@@ -84,7 +102,7 @@
         { id: 'recipient_id', hidden: true }
       ],
       server: {
-        url: '/api/data?filter=donor_alias_{{ donor.id }}',
+        url: '/api/data?filter=donor_alias_{{ alias.id }}',
         then: results => results.data,
         total: results => results.total,
       },
@@ -154,6 +172,12 @@
     // function seeAllGifts() {
     //   window.location.href = filter_url; return false;
     // };
+
+    // Rotate Y axis title
+    var yTitle = document.querySelector('.ytitle');
+    yTitle.setAttribute('transform', 'rotate(0,' + yTitle.getAttribute('x') + ',' + yTitle.getAttribute('y') + ')');
+
+
 
     // TODO: reset filters button
 
