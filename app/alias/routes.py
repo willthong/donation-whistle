@@ -1,10 +1,17 @@
-from flask import flash, redirect, request, render_template, url_for
+import datetime
+import json
+
+from flask import flash, redirect, request, render_template, send_file, url_for
 from flask_login import login_required
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired, FileAllowed
+from wtforms.validators import ValidationError
 
 from app import db
 from app.alias import bp
 from app.alias.forms import DeleteAlias, NewAliasName
 from app.models import Donor, DonorAlias
+
 
 @bp.route("/aliases", methods=["GET"])
 def aliases():
@@ -66,9 +73,9 @@ def new_alias():
         query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
         alias = db.session.execute(query).scalars().first()
         if (
-            alias and 
-            form.alias_name.data not in [d.name for d in selected_donors] and 
-            Donor.query.filter_by(name=form.alias_name.data).first()
+            alias
+            and form.alias_name.data not in [d.name for d in selected_donors]
+            and Donor.query.filter_by(name=form.alias_name.data).first()
         ):
             # Only add a new alias if donors includes a donor with the proposed name, otherwise
             # it'll be orphaning a different donor.
@@ -167,3 +174,87 @@ def remove_alias(alias_id, donor_id):
         form=form,
         full_delete=full_delete,
     )
+
+
+@bp.route("/export", methods=["GET"])
+def export_aliases():
+    """Export all aliases ready to be reimported."""
+    all_alias_query = (
+        db.select(DonorAlias)
+        .join(DonorAlias.donors)
+        .group_by(DonorAlias)
+        .order_by(DonorAlias.name)
+    )
+    all_aliases = db.session.scalars(all_alias_query).all()
+    export_data = [
+        {"alias": alias.name, "donors": [donor.name for donor in alias.donors]}
+        for alias in all_aliases
+    ]
+    export_data = json.dumps(export_data)
+
+    filename = (
+        "donation_whistle_alias_export_"
+        + datetime.datetime.now().strftime("%Y-%m-%d")
+        + ".json"
+    )
+    with open("app/" + filename, "w") as writer:
+        writer.write(export_data)
+
+    return send_file(filename, as_attachment=True, mimetype="json")
+
+
+# File size validator
+def FileSizeLimit(max_size_in_mb):
+    max_bytes = max_size_in_mb * 1024 * 1024
+
+    def file_length_check(form, field):
+        if len(field.data.read()) > max_bytes:
+            raise ValidationError(f"File size must be less than {max_size_in_mb}MB")
+        field.data.seek(0)
+
+    return file_length_check
+
+
+class JSONForm(FlaskForm):
+    json = FileField(
+        validators=[
+            FileRequired(),
+            FileAllowed(["json"]),
+            FileSizeLimit(max_size_in_mb=1),
+        ]
+    )
+
+
+@bp.route("/port", methods=["GET", "POST"])
+def port():
+    """Accepts JSON upload. Upon valid JSON upload, first, deletes all aliases. Then imports new 
+    aliases from the JSON, using donor names to match them up with the right donors."""
+
+    form = JSONForm()
+
+    if form.validate_on_submit():
+        db.delete(DonorAlias).where(DonorAlias.name != None)
+        try:
+            alias_list = json.loads(form.json.data.read().decode("utf-8"))
+        except json.JSONDecodeError as e:
+            print("Error decoding JSON:", e)
+        for alias in alias_list:
+            new_alias = DonorAlias(name=alias["alias"])
+            donors = alias["donors"]
+            for donor in donors:
+                donor_record = (
+                    db.session.execute(db.select(Donor).filter_by(name=donor))
+                    .scalars()
+                    .first()
+                )
+                new_alias.donors.append(donor_record)
+            db.session.add(new_alias)
+        db.session.commit()
+        return redirect(url_for("alias.aliases"))
+
+    return render_template("alias_port.html", form=form)
+
+
+# Add aliases to a list as they're done, then note any donors left which don't have
+# aliases with an offer to sync them up (this would indicate that new EC data had been
+# added after the alias list was last exported)

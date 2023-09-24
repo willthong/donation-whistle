@@ -166,7 +166,8 @@ with open(raw_data_file, newline="") as infile:
                 donor_type_id=record["DonorStatus"],
             )
             print(f"New donor: {donor}")
-            donor_list = [donor]
+            # Don't think this does anything
+            # donor_list = [donor]
             new_alias = DonorAlias(name=donor_name)
             new_alias.donors.append(donor)
             db.session.add(new_alias)
