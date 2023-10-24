@@ -12,7 +12,6 @@ re-export to CSV, visualise and publicly publish the data.
 ## Installation
 
 * Docker
-* Web frontend to explore data?
 
 ## Usage
 
@@ -34,11 +33,12 @@ flask run donation_scraper.py
 * [X] Allow exploration of data (tabular), including with 'sane default' filters
   (group aliases, including trade unions; exclude public funds)
 * [X] Allow exploration of data (graphical)
-* [ ] Simple import UI
+* [X] Simple import UI
 * [ ] Data export as CSV
 * [ ] Data import UI (including async import and progress bar)
-* [ ] Alias import/export
+* [X] Alias import/export
 * [ ] Election view for the 12 months leading up to an election
+* [ ] Add reported name to donor detail
 * [ ] Write and link to a blog post to explain why this project exists
 
 ## Contributing

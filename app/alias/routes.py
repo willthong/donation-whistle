@@ -7,7 +7,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms.validators import ValidationError
 
-from app import db
+from app import db, cache
 from app.alias import bp
 from app.alias.forms import DeleteAlias, NewAliasName
 from app.models import Donor, DonorAlias
@@ -250,6 +250,7 @@ def port():
                 new_alias.donors.append(donor_record)
             db.session.add(new_alias)
         db.session.commit()
+        cache.clear()
         return redirect(url_for("alias.aliases"))
 
     return render_template("alias_port.html", form=form)

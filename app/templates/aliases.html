@@ -3,23 +3,30 @@
 {% block app_content %}
   <h1>Aliases</h1>
   <p>
-    Every time a political party reports a donation to the Electoral Commission, the
-    Commission simply reports the donation under that name. The Commission does not
-    perform any consolidation between multiple variations of the same donor (eg "Lord
-    David Sainsbury" and "Lord Sainsbury of Turville" would have multiple records), whether
-    between different political parties or to the same political party, so it is
-    hard to establish how much any individual donor has given over time.
+    When a political party reports a donation to the Electoral Commission, the
+    Commission simply reports the donation under that name. It does not
+    consolidate multiple variations of the same donor (eg "Lord
+    David Sainsbury" and "Lord Sainsbury of Turville" would have multiple records). Nor
+    does it consolidate the same donor's record between different political parties.
+    This makes it difficult to understand how much any individual donor has given over time.
   </p>
   <p>
-    The below buttons will allow you customise how Donation Whistle performs
-    this consolidation. You can click 'New Alias' to add a name and note to unaliased
-    donors, or click on the name of an already-grouped alias to either delete an alias
-    (ie reset the relevant donors back to individual donors) or amend or reset them.
+    The below buttons allow you to decide how Donation Whistle consolidates donor
+    records. 'New Alias' adds a name and note to unaliased donors. Click on the name of
+    an already-grouped alias to either change the alias or reset it (turn it back to an
+    individual donor). With 'Import/Export Aliases', you can export this instance of
+    Donation Whistle's aliases, either as a backup or to share your aliases with another
+    instance. This also helps you import the aliases from a different instance of Donation Whistle.
   </p>
 
   <a href="{{ url_for('alias.create_new_alias') }}">
     <button type="button" class="btn btn-primary" >
       Create new alias
+    </button>
+  </a>
+  <a href="{{ url_for('alias.port') }}">
+    <button type="button" class="btn btn-primary" >
+      Import/export aliases
     </button>
   </a>
 

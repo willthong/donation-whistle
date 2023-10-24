@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+
+  <h1>Import database</h1>
+
+  <div class="row">
+    <form action="" method="POST" enctype="multipart/form-data">
+      {{ form.csrf_token }}
+      <p>
+        {% if last_download %}
+          Data last downloaded on {{ last_download }}. Please click below to refresh the
+          data from the Electoral Commission's website.
+        {% else %}
+          No previous raw data detected.
+        {% endif %}
+      </p>
+      <p>
+        {% for error in form.errors %}
+          <span style="color: red; font-style: italic">{{ error }}</span>
+        {% endfor %}
+        {{ form.json }}
+        <button type="submit" class="btn btn-primary">
+          Download data from Electoral Commission
+        </button>
+      </p>
+    </form>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

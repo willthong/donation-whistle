@@ -17,9 +17,15 @@ login.login_view = "login"
 migrate = Migrate(app, db)
 
 from app.alias import bp as alias_bp
+
 app.register_blueprint(alias_bp, url_prefix="/alias")
 
 from app.api import bp as api_bp
+
 app.register_blueprint(api_bp, url_prefix="/api")
+
+from app.db_import import bp as db_import_bp
+
+app.register_blueprint(db_import_bp, url_prefix="/db_import")
 
 from app import routes, models

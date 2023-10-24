@@ -1,9 +1,11 @@
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import json
 from plotly import graph_objects as go
+import requests
 from werkzeug.urls import url_parse
 
-from flask import flash, redirect, request, render_template, url_for
+from flask import flash, redirect, request, render_template, send_file, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
@@ -341,12 +343,7 @@ def donor(id):
             filter_list.append("date_gt_" + request.form["date_gt"])
         if request.form["date_lt"]:
             filter_list.append("date_lt_" + request.form["date_lt"])
-        return redirect(
-            url_for(
-                "donor",
-                id=id,
-            )
-        )
+        return redirect(url_for( "donor", id=id,))
 
     all_filters = request.args.getlist("filter")
 
@@ -786,3 +783,22 @@ def register():
         # TODO: change this to the admin's users panel
         return redirect(url_for("login"))
     return render_template("register.html", title="Register", form=form)
+
+
+@app.route("/export", methods=["GET"])
+def export_data():
+    """Export all data. Query the API, turn it into JSON and send_file it"""
+    filter_string = request.query_string.decode()
+    all_filters = request.args.getlist("filter")
+    api_url = request.url_root[:-1] + url_for("data")
+    r = requests.get(api_url)
+    print(r.text)
+    df = [df.to_dict(orient="records")]
+
+    # filename = (
+    #     "donation_whistle_export_" + datetime.now().strftime("%Y-%m-%d") + ".json"
+    # )
+    # with open("app/" + filename, "w") as writer:
+    #     writer.write(r.text)
+
+    return redirect(url_for("index"))
