@@ -34,11 +34,11 @@ flask run donation_scraper.py
   (group aliases, including trade unions; exclude public funds)
 * [X] Allow exploration of data (graphical)
 * [X] Simple import UI
-* [ ] Data export as CSV
+* [X] Data export as CSV
 * [ ] Data import UI (including async import and progress bar)
 * [X] Alias import/export
 * [ ] Election view for the 12 months leading up to an election
-* [ ] Add reported name to donor detail
+* [ ] Add reported name to donor detail table
 * [ ] Write and link to a blog post to explain why this project exists
 
 ## Contributing

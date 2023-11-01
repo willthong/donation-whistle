@@ -107,6 +107,9 @@ class Donation(db.Model):
             "type": self.donation_type.name,
             "amount": self.value,
             "legacy": self.is_legacy,
+            "original_donor_name": self.donor.name,
+            "electoral_commission_donor_id": self.donor.ec_donor_id,
+            "electoral_commission_donation_id": self.ec_ref,
         }
 
 class User(UserMixin, db.Model):

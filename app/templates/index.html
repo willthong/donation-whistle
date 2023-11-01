@@ -85,6 +85,8 @@
       <button type="submit" class="btn btn-primary" >Apply filters</button> </form>
       <button type="button" class="btn btn-secondary" onclick="window.location.href = '{{ url_for('index') }}'; return false;">Reset filters</button>
       <br><br>
+      <a href="https://youtu.be/dQw4w9WgXcQ?si=jKF2X_3C339C2Ubf" id="csvLink">Export data as CSV</a> (based on currently-applied filters)
+      <br><br>
     </span>
     </div>
   <div id="table"></div>
@@ -132,8 +134,15 @@
       return value;
     }
 
-    // Adjust tickboxes and date fields to match filters in api_filter template variable
+    // Adjust tickboxes and date fields to match filters in api_filter template
+    // variable. Also updates CSV export link to match filters.
     window.onload = function() {
+
+      var currentUrl = window.location.href;
+      var csvUrl = currentUrl.replace("index","export");
+      var oldCsvUrl = document.getElementById("csvLink");
+      oldCsvUrl.setAttribute('href', csvUrl);
+
       const regex = /filter\=([^&]+?)(?:&|$)/g;
       const recipientFilters = [];
       let match;

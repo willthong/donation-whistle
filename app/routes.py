@@ -1,3 +1,4 @@
+import csv
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import json
@@ -96,9 +97,7 @@ def index():
             )
         )
     # The api_filter parameter will be appended to the API URL by the template
-    filter_string = request.query_string.decode()
-    if not filter_string:
-        filter_string = DEFAULT_FILTERS
+    filter_string = request.query_string.decode() or DEFAULT_FILTERS
     return render_template(
         "index.html", title="Home", form=form, api_filter=filter_string
     )
@@ -343,7 +342,12 @@ def donor(id):
             filter_list.append("date_gt_" + request.form["date_gt"])
         if request.form["date_lt"]:
             filter_list.append("date_lt_" + request.form["date_lt"])
-        return redirect(url_for( "donor", id=id,))
+        return redirect(
+            url_for(
+                "donor",
+                id=id,
+            )
+        )
 
     all_filters = request.args.getlist("filter")
 
@@ -787,18 +791,33 @@ def register():
 
 @app.route("/export", methods=["GET"])
 def export_data():
-    """Export all data. Query the API, turn it into JSON and send_file it"""
-    filter_string = request.query_string.decode()
-    all_filters = request.args.getlist("filter")
-    api_url = request.url_root[:-1] + url_for("data")
+    """Export all donations. Query the API, turn it into JSON and send_file it"""
+    filter_string = request.query_string.decode() or DEFAULT_FILTERS
+    api_url = request.url_root[:-1] + url_for("data") + "?" + filter_string
     r = requests.get(api_url)
-    print(r.text)
-    df = [df.to_dict(orient="records")]
+    data = r.json()["data"]
+    for record in data:
+        record["date"] = datetime.strptime(record["date"], "%a, %d %b %Y %H:%M:%S %Z")
+        record["date"] = record["date"].strftime("%Y-%m-%d")
+    filename = "donation_whistle_export_" + datetime.now().strftime("%Y-%m-%d") + ".csv"
+    pretty_field_names = {
+        "electoral_commission_donation_id": "Electoral Commission donation ID",
+        "electoral_commission_donor_id": "Electoral Commission donor ID",
+        "date": "Donation date",
+        "donor": "Donor name (alias)",
+        "original_donor_name": "Original donor name",
+        "alias_id": "Donor alias ID",
+        "donor_type": "Donor type",
+        "recipient": "Recipient name",
+        "recipient_id": "Recipient ID",
+        "type": "Donation type",
+        "amount": "Donation amount",
+        "legacy": "Is legacy?",
+    }
+    with open("app/" + filename, "w") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=pretty_field_names.keys())
+        writer.writerow(dict(pretty_field_names))
+        for record in data:
+            writer.writerow(record)
 
-    # filename = (
-    #     "donation_whistle_export_" + datetime.now().strftime("%Y-%m-%d") + ".json"
-    # )
-    # with open("app/" + filename, "w") as writer:
-    #     writer.write(r.text)
-
-    return redirect(url_for("index"))
+    return send_file(filename, as_attachment=True, mimetype="csv")
