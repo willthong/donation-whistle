@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 cache = Cache()
 db = SQLAlchemy()
 login = LoginManager()
-login.login_view = "login"
+login.login_view = "main.login"
 migrate = Migrate()
 
 

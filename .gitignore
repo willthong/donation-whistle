@@ -12,4 +12,7 @@ raw_data*
 *raw_data*
 *.pyc
 .flaskenv
+.env
 cache/*
+.coverage
+.coverage/*
