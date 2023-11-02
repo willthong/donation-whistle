@@ -10,7 +10,7 @@ from app.models import (
     Recipient,
     DonationType,
 )
-from app.routes import populate_filter_statements, OTHER_DONATION_TYPES, OTHER_DONOR_TYPES
+from app.main.routes import populate_filter_statements, OTHER_DONATION_TYPES, OTHER_DONOR_TYPES
 from app.api import bp
 
 CRIT_LOOKUPS = {

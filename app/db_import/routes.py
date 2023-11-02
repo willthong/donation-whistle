@@ -177,4 +177,4 @@ def db_import():
                 db.session.add(new_donation)
         db.session.commit()
     cache.clear()
-    return redirect(url_for("index"))
+    return redirect(url_for("main.index"))

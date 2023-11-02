@@ -32,16 +32,16 @@
   <div class="container">
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
       <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('index') }}"> Donation Whistle </a>
+        <a class="navbar-brand" href="{{ url_for('main.index') }}"> Donation Whistle </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
           <ul class="navbar-nav">
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('recipients') }}">Recipients</a>
+              <a class="nav-link" href="{{ url_for('main.recipients') }}">Recipients</a>
             </li>
-            <a class="nav-link" href="{{ url_for('donors') }}">Donors</a>
+            <a class="nav-link" href="{{ url_for('main.donors') }}">Donors</a>
             {% if current_user.is_authenticated %}
               <li class="nav-item">
                 <a class="nav-link"  href="{{ url_for('alias.aliases') }}">Aliases</a>
@@ -49,9 +49,9 @@
               <li class="nav-item">
                 <a class="nav-link"  href="{{ url_for('db_import') }}">Data import</a>
               </li>
-              <li><a class="nav-link" href="{{ url_for('logout') }}">Log out</a></li>
+              <li><a class="nav-link" href="{{ url_for('main.logout') }}">Log out</a></li>
             {% else %}
-              <li><a class="nav-link" href="{{ url_for('login') }}">Log in</a></li>
+              <li><a class="nav-link" href="{{ url_for('main.login') }}">Log in</a></li>
             {% endif %}
           </ul>
         </div>

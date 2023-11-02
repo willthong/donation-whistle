@@ -78,7 +78,7 @@
       if (recipientName == 'Conservative and Unionist Party') {var printName = 'Conservative Party';}
       if (recipientName == 'UK Independence Party (UKIP)') {var printName = 'UKIP';}
       if (recipientName == 'Scottish National Party (SNP)') {var printName = 'SNP';}
-      return html(`<a href='{{ url_for("recipient_dummy") }}/${recipientId}${filterAddons}'> ${printName} </a>`);
+      return html(`<a href='{{ url_for("main.recipient_dummy") }}/${recipientId}${filterAddons}'> ${printName} </a>`);
     }
 
     new Grid({

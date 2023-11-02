@@ -14,7 +14,7 @@ from wtforms.validators import (
     DataRequired,
 )
 
-from app import app, db
+from app import db
 from app.models import (
     User,
     DonorAlias,
@@ -23,11 +23,12 @@ from app.models import (
     Recipient,
     DonationType,
 )
-from app.forms import (
+from app.main.forms import (
     LoginForm,
     RegistrationForm,
     FilterForm,
 )
+from app.main import bp
 
 OTHER_DONOR_TYPES = [
     "donor_type_building_society",
@@ -79,8 +80,8 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Sign In")
 
 
-@app.route("/", methods=["GET", "POST"])
-@app.route("/index", methods=["GET", "POST"])
+@bp.route("/", methods=["GET", "POST"])
+@bp.route("/index", methods=["GET", "POST"])
 def index():
     form = FilterForm()
 
@@ -92,7 +93,7 @@ def index():
             filter_list.append("date_lt_" + request.form["date_lt"])
         return redirect(
             url_for(
-                "index",
+                "main.index",
                 filter=filter_list,
             )
         )
@@ -149,7 +150,7 @@ def assign_colours_to_donor_types(query, index):
     return donor_type, relevant_types
 
 
-@app.route(
+@bp.route(
     "/recipient",
     methods=[
         "GET",
@@ -160,7 +161,7 @@ def recipient_dummy():
     pass
 
 
-@app.route("/recipient/<int:id>", methods=["GET", "POST"])
+@bp.route("/recipient/<int:id>", methods=["GET", "POST"])
 def recipient(id):
     recipient = db.get_or_404(Recipient, id)
     title = recipient.name
@@ -175,7 +176,7 @@ def recipient(id):
             filter_list.append("date_lt_" + request.form["date_lt"])
         return redirect(
             url_for(
-                "recipient",
+                "main.recipient",
                 id=id,
                 filter=filter_list,
             )
@@ -328,7 +329,7 @@ def assign_colours_to_parties(party):
     return "black"
 
 
-@app.route("/donor/<int:id>", methods=["GET", "POST"])
+@bp.route("/donor/<int:id>", methods=["GET", "POST"])
 def donor(id):
     """This is ultimately a user-facing view of aliases"""
     alias = db.get_or_404(DonorAlias, id)
@@ -344,7 +345,7 @@ def donor(id):
             filter_list.append("date_lt_" + request.form["date_lt"])
         return redirect(
             url_for(
-                "donor",
+                "main.donor",
                 id=id,
             )
         )
@@ -449,7 +450,7 @@ def convert_to_js_array(query):
     return output
 
 
-@app.route("/recipients")
+@bp.route("/recipients")
 def recipients():
     # Generate dates
     start_date = db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
@@ -655,7 +656,7 @@ def recipients():
     )
 
 
-@app.route("/donors")
+@bp.route("/donors")
 def donors():
     donation_type_filter_statements = populate_filter_statements(
         OTHER_DONATION_TYPES, "donation_type_", DonationType.name
@@ -739,10 +740,10 @@ def donors():
     )
 
 
-@app.route("/login", methods=["GET", "POST"])
+@bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
         user = db.session.execute(
@@ -750,29 +751,29 @@ def login():
         ).scalar()
         if user is None or not user.check_password(form.password.data):
             flash("Invalid username or password")
-            return redirect(url_for("login"))
+            return redirect(url_for("main.login"))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get("next")
         # netloc protects against attacker inserting malicious URL in "next" argument by
         # ensuring it's a relative rather than absolute URL
         if not next_page or url_parse(next_page).netloc != "":
-            next_page = url_for("index")
+            next_page = url_for("main.index")
         return redirect(next_page)
     return render_template("login.html", title="Log in", form=form)
 
 
-@app.route("/logout")
+@bp.route("/logout")
 def logout():
     logout_user()
-    return redirect(url_for("index"))
+    return redirect(url_for("main.index"))
 
 
-@app.route("/register", methods=["GET", "POST"])
+@bp.route("/register", methods=["GET", "POST"])
 @login_required
 def register():
     if current_user.is_authenticated and not current_user.is_admin:
         flash("Only admins can create new users")
-        return redirect(url_for("index"))
+        return redirect(url_for("main.index"))
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User(
@@ -785,15 +786,15 @@ def register():
         db.session.commit()
         flash("New user registered!")
         # TODO: change this to the admin's users panel
-        return redirect(url_for("login"))
+        return redirect(url_for("main.login"))
     return render_template("register.html", title="Register", form=form)
 
 
-@app.route("/export", methods=["GET"])
+@bp.route("/export", methods=["GET"])
 def export_data():
     """Export all donations. Query the API, turn it into JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
-    api_url = request.url_root[:-1] + url_for("data") + "?" + filter_string
+    api_url = request.url_root[:-1] + url_for("api.data") + "?" + filter_string
     r = requests.get(api_url)
     data = r.json()["data"]
     for record in data:

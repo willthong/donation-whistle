@@ -67,7 +67,7 @@
       toggle.style.pointerEvents = 'none';
     });
 
-    var filter_url = '{{ url_for('index') }}' + "{{ filter_list | safe }}";
+    var filter_url = '{{ url_for('main.index') }}' + "{{ filter_list | safe }}";
 
     // Update dates to match URL
     const urlParams = new URLSearchParams(window.location.search);
