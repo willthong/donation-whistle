@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask import request
 
-from app import app, db, cache
+from app import db, cache
 from app.models import (
     Donor,
     DonorAlias,
@@ -10,7 +10,7 @@ from app.models import (
     Recipient,
     DonationType,
 )
-from app.main.routes import populate_filter_statements, OTHER_DONATION_TYPES, OTHER_DONOR_TYPES
+from app.main.routes import populate_filter_statements, OTHER_DONATION_TYPES
 from app.api import bp
 
 CRIT_LOOKUPS = {
@@ -33,7 +33,7 @@ def apply_sort(query):
         return query.order_by(criterion.desc()) if direction == "-" else query.order_by(criterion)
 
 
-@app.route("/api/data")
+@bp.route("/data")
 @cache.cached(timeout=600000, query_string=True)
 # https://stackoverflow.com/a/47181782
 def data():

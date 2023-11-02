@@ -7,29 +7,35 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
 
-app = Flask(__name__)
-app.config.from_object(Config)
-
-cache = Cache(app)
-db = SQLAlchemy(app)
-login = LoginManager(app)
+cache = Cache()
+db = SQLAlchemy()
+login = LoginManager()
 login.login_view = "login"
-migrate = Migrate(app, db)
+migrate = Migrate()
 
-from app.alias import bp as alias_bp
 
-app.register_blueprint(alias_bp, url_prefix="/alias")
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
 
-from app.api import bp as api_bp
+    cache.init_app(app)
+    db.init_app(app)
+    login.init_app(app)
+    migrate.init_app(app, db)
 
-app.register_blueprint(api_bp, url_prefix="/api")
+    from app.alias import bp as alias_bp
+    app.register_blueprint(alias_bp, url_prefix="/alias")
 
-from app.db_import import bp as db_import_bp
+    from app.api import bp as api_bp
+    app.register_blueprint(api_bp, url_prefix="/api")
 
-app.register_blueprint(db_import_bp, url_prefix="/db_import")
+    from app.db_import import bp as db_import_bp
+    app.register_blueprint(db_import_bp, url_prefix="/db_import")
 
-from app.main import bp as main_bp
+    from app.main import bp as main_bp
+    app.register_blueprint(main_bp)
 
-app.register_blueprint(main_bp)
+    return app
+
 
 from app import models

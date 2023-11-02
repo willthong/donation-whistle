@@ -7,7 +7,7 @@ import urllib
 
 from flask import redirect, request, render_template, url_for
 
-from app import app, db, cache
+from app import db, cache
 from app.db_import import bp
 from app.db_import.forms import DBImport
 from app.models import Donation, Recipient, DonationType, Donor, DonorAlias, DonorType
@@ -77,7 +77,7 @@ def remove_line_breaks(row):
     return row
 
 
-@app.route("/db_import/db_import", methods=["GET", "POST"])
+@bp.route("/db_import/db_import", methods=["GET", "POST"])
 def db_import():
     form = DBImport()
 

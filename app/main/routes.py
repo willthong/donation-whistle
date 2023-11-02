@@ -1,7 +1,6 @@
 import csv
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-import json
 from plotly import graph_objects as go
 import requests
 from werkzeug.urls import url_parse
