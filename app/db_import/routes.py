@@ -5,7 +5,7 @@ import re
 import ssl
 import urllib
 
-from flask import redirect, request, render_template, url_for
+from flask import current_app, redirect, render_template, url_for
 
 from app import db, cache
 from app.db_import import bp
@@ -50,7 +50,7 @@ ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
 
-def download_raw_data():
+def download_raw_data(): # pragma: no cover
     filename = "raw_data_" + str(date.today()) + ".csv"
     urllib.request.urlretrieve(URL, filename)
     return filename
@@ -76,29 +76,36 @@ def remove_line_breaks(row):
             row[field] = row[field].replace("\n", " ").replace("\r", "")
     return row
 
+def last_download():
+    """Finds last downloaded date"""
+    raw_data_file = glob.glob(
+        "raw_data_*.csv",
+        root_dir=current_app.config["RAW_DATA_LOCATION"]
+    )
+    try:
+        last_download = re.findall(r"\d{4}\-\d{2}\-\d{2}", raw_data_file[0])
+        last_download = datetime.strptime(last_download[0], "%Y-%m-%d")
+        last_download = last_download.strftime("%d %B %Y")
+    except: # pragma: no cover
+        last_download = None
+    return last_download
 
-@bp.route("/db_import/db_import", methods=["GET", "POST"])
+@bp.route("/db_import", methods=["GET", "POST"])
 def db_import():
     form = DBImport()
-
     if not form.validate_on_submit():
-        # Check last download
-        raw_data_file = glob.glob("raw_data_*.csv")
-        try:
-            last_download = re.findall(r"\d{4}\-\d{2}\-\d{2}", raw_data_file[0])
-            last_download = datetime.strptime(last_download[0], "%Y-%m-%d")
-            last_download = last_download.strftime("%d %B %Y")
-        except:
-            last_download = None
-        return render_template("db_import.html", form=form, last_download=last_download)
+        return render_template("db_import.html", form=form, last_download=last_download())
 
-    downloaded_data = download_raw_data()
+    if current_app.config["TESTING"]:
+        downloaded_data = current_app.config["RAW_DATA_LOCATION"] + "raw_data_2023-01-01.csv"
+    else:
+        downloaded_data = download_raw_data() # pragma: no cover
 
-    for donation_type in DONATION_TYPES:
+    for donation_type in DONATION_TYPES: # pragma: no cover
         query = db.select(DonationType).filter_by(name=donation_type)
         if not db.session.execute(query).scalars().first():
             db.session.add(DonationType(name=donation_type))
-    for donor_type in DONOR_TYPES:
+    for donor_type in DONOR_TYPES: # pragma: no cover
         query = db.select(DonorType).filter_by(name=donor_type)
         if not db.session.execute(query).scalars().first():
             db.session.add(DonorType(name=donor_type))
@@ -159,9 +166,6 @@ def db_import():
 
             query = db.select(DonationType).filter_by(name=record["DonationType"])
             donation_type_id = db.session.execute(query).scalars().first().id
-
-            query = db.select(DonorType).filter_by(name=record["DonorStatus"])
-            donor_type_id = db.session.execute(query).scalars().first().id
 
             query = db.select(Donation).filter_by(ec_ref=ec_ref)
             if not db.session.execute(query).scalars().first():
