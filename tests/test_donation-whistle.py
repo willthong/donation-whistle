@@ -6,13 +6,23 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 
+from datetime import date
 import unittest
 
 from config import Config
 from flask import current_app
 
 from app import create_app, db
-from app.models import User, Donation, DonorType, DonationType
+from app.models import (
+    User, 
+    Donation, 
+    DonorAlias, 
+    Donor, 
+    DonorType, 
+    DonationType, 
+    Recipient, 
+    load_user
+)
 
 from app.db_import import routes as db_import
 
@@ -92,6 +102,22 @@ class TestWebApp(unittest.TestCase):
         html = response.get_data(as_text=True)
         assert "Field must be equal to password." in html
 
+    def test_register_user_validation(self):
+        self.login()
+        response = self.client.post(
+            "/register",
+            data={
+                "username": "bob",
+                "email": "bob@mailinator.com",
+                "password": "spamandeggs",
+                "repeat_password": "spamandeggs",
+            },
+        )
+        html = response.get_data(as_text=True)
+        assert "That username is taken. Please use a different one." in html
+        assert "That email is taken. Please use a different one." in html
+
+
     def test_register_user(self):
         self.login()
         response = self.client.post(
@@ -158,13 +184,50 @@ VIRGINIA HOUSE
         html = response.get_data(as_text=True)
         assert "01 January 2023" in html
 
-    def test_db_import(self):
+    def db_import(self):
         self.login()
         self.client.post("/db_import/db_import")
-        donations = [i for i in db.session.scalars(db.select(Donation))]
-        assert "Cash" in [
-            i.name for i in db.session.scalars(db.select(DonationType)).all()
-        ]
-        assert "Individual" in [
-            i.name for i in db.session.scalars(db.select(DonorType)).all()
-        ]
+
+    def test_db_import(self):
+        self.db_import()
+        assert db.session.query(DonationType).filter_by(name="Cash").first() is not None
+        assert db.session.query(DonorType).filter_by(name="Individual").first() is not None
+        dereg_query = db.session.query(Recipient).filter_by(name="All For Unity")
+        dereg_query = dereg_query.first().deregistered 
+        assert dereg_query == date(2022,5,6)
+        assert db.session.query(Donor).filter_by(name="KGL (Estates) Ltd").first() is not None
+        assert db.session.query(DonorAlias).filter_by(name="KGL (Estates) Ltd").first() is not None
+        assert db.session.query(DonorAlias).count() == 12
+        assert db.session.query(Donation).filter_by(ec_ref="C0476383").first().value == 2500
+        # Check for dupe EC ref record in raw_data_file
+        assert db.session.query(Donation).filter_by(ec_ref="C0476383").count() == 1
+
+    def test_models(self):
+        self.db_import()
+        assert repr(db.session.query(DonorAlias).filter_by(name="Unite").first()) == "<Donor Unite>"
+        assert repr(db.session.query(Donor).filter_by(name="Unite").first()) == "<Donor (Backend) Unite>"
+        assert repr(db.session.query(Recipient).filter_by(name="Labour Party").first()) == "<Recipient Labour Party>"
+        assert repr(db.session.query(DonationType).filter_by(name="Cash").first()) == "Cash"
+        donation = db.session.query(Donation).filter_by(id=1).first()
+        repr_string = "<Donation of £10000.0 from KGL (Estates) Ltd"
+        repr_string += " to Conservative and Unionist Party on 2019-12-01>"
+        assert repr(donation) == repr_string
+        assert donation.to_dict() == {
+            'donor': 'KGL (Estates) Ltd', 
+            'donor_type': 'Company', 
+            'alias_id': 1, 
+            'recipient': 'Conservative and Unionist Party', 
+            'recipient_id': 1, 
+            'date': date(2019, 12, 1), 
+            'type': 'Cash', 
+            'amount': 10000.0, 
+            'legacy': False, 
+            'original_donor_name': 'KGL (Estates) Ltd', 
+            'electoral_commission_donor_id': 37934, 
+            'electoral_commission_donation_id': 'C0479200'
+        }
+        assert repr(db.session.query(User).filter_by(id=1).first()) == "<User bob>" 
+
+    def test_load_user(self):
+        assert repr(load_user(1)) == "<User bob>"
+

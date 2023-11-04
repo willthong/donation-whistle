@@ -50,7 +50,7 @@ ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
 
-def download_raw_data(): # pragma: no cover
+def download_raw_data():  # pragma: no cover
     filename = "raw_data_" + str(date.today()) + ".csv"
     urllib.request.urlretrieve(URL, filename)
     return filename
@@ -76,38 +76,43 @@ def remove_line_breaks(row):
             row[field] = row[field].replace("\n", " ").replace("\r", "")
     return row
 
+
 def last_download():
     """Finds last downloaded date"""
     raw_data_file = glob.glob(
-        "raw_data_*.csv",
-        root_dir=current_app.config["RAW_DATA_LOCATION"]
+        "raw_data_*.csv", root_dir=current_app.config["RAW_DATA_LOCATION"]
     )
     try:
         last_download = re.findall(r"\d{4}\-\d{2}\-\d{2}", raw_data_file[0])
         last_download = datetime.strptime(last_download[0], "%Y-%m-%d")
         last_download = last_download.strftime("%d %B %Y")
-    except: # pragma: no cover
+    except:  # pragma: no cover
         last_download = None
     return last_download
+
 
 @bp.route("/db_import", methods=["GET", "POST"])
 def db_import():
     form = DBImport()
     if not form.validate_on_submit():
-        return render_template("db_import.html", form=form, last_download=last_download())
+        return render_template(
+            "db_import.html", form=form, last_download=last_download()
+        )
 
     if current_app.config["TESTING"]:
-        downloaded_data = current_app.config["RAW_DATA_LOCATION"] + "raw_data_2023-01-01.csv"
+        downloaded_data = (
+            current_app.config["RAW_DATA_LOCATION"] + "raw_data_2023-01-01.csv"
+        )
     else:
-        downloaded_data = download_raw_data() # pragma: no cover
+        downloaded_data = download_raw_data()  # pragma: no cover
 
-    for donation_type in DONATION_TYPES: # pragma: no cover
+    for donation_type in DONATION_TYPES:
         query = db.select(DonationType).filter_by(name=donation_type)
-        if not db.session.execute(query).scalars().first():
+        if not db.session.execute(query).scalars().first():  # pragma: no cover
             db.session.add(DonationType(name=donation_type))
-    for donor_type in DONOR_TYPES: # pragma: no cover
+    for donor_type in DONOR_TYPES:  # pragma: no cover
         query = db.select(DonorType).filter_by(name=donor_type)
-        if not db.session.execute(query).scalars().first():
+        if not db.session.execute(query).scalars().first():  # pragma: no cover
             db.session.add(DonorType(name=donor_type))
 
     with open(downloaded_data, newline="") as infile:
@@ -145,7 +150,7 @@ def db_import():
             # Donors and aliases
             query = db.select(Donor).filter_by(name=donor_name)
             if db.session.execute(query).scalars().first():
-                donor = db.session.execute(query).scalars().first()
+                donor = db.session.execute(query).scalars().first()  # pragma: no cover
             else:
                 donor = Donor(
                     name=donor_name,

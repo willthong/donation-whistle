@@ -8,8 +8,7 @@ app/api/__pycache__
 app/api/__pycache__/*
 app/db_import/__pycache__
 app/db_import/__pycache__/*
-raw_data*
-*raw_data*
+/raw_data*
 *.pyc
 .flaskenv
 .env
