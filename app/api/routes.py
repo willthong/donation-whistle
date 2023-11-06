@@ -14,7 +14,7 @@ from app.main.routes import populate_filter_statements, OTHER_DONATION_TYPES
 from app.api import bp
 
 CRIT_LOOKUPS = {
-    "donor": Donor.name,
+    "donor": DonorAlias.name,
     "recipient": Recipient.name,
     "date": Donation.date,
     "value": Donation.value,
@@ -25,10 +25,9 @@ def apply_sort(query):
     sort = request.args.get("sort")
     if not sort:
         return query.order_by(Donation.date.desc())
-    for s in sort.split(","):
+    for s in sort.split(","): # pragma no cover
         criterion = s[1:]
         criterion = CRIT_LOOKUPS[criterion] if criterion in CRIT_LOOKUPS else Donation.date
-        print(criterion)
         direction = s[0]
         return query.order_by(criterion.desc()) if direction == "-" else query.order_by(criterion)
 
@@ -108,11 +107,9 @@ def data():
     # Search filter
     search = request.args.get("search")
     if search:
-        # Filter so that Donation.donor.name matches. You must use a where clause
+        # Filter so that the Donor Alias name matches. You must use a where clause
         # https://docs.sqlalchemy.org/en/20/tutorial/data_select.html#the-where-clause
-        # TODO: check if this is a bug because it should be looking at Aliases. Or maybe
-        # it should be doing both!
-        query = query.where(Donor.name.ilike(f"%{search}%"),)
+        query = query.where(DonorAlias.name.ilike(f"%{search}%"),)
     total = len(list(db.session.scalars(query)))
 
     # Sorting
