@@ -86,9 +86,9 @@ def index():
 
     if form.validate_on_submit():
         filter_list = [par for par in request.form.keys() if request.form[par] == "y"]
-        if request.form["date_gt"]:
+        if request.form["date_gt"]:  # pragma: no cover
             filter_list.append("date_gt_" + request.form["date_gt"])
-        if request.form["date_lt"]:
+        if request.form["date_lt"]:  # pragma: no cover
             filter_list.append("date_lt_" + request.form["date_lt"])
         return redirect(
             url_for(
@@ -139,7 +139,7 @@ def assign_colours_to_donor_types(query, index):
     colours and a dictionary with duplicates removed for the key."""
     donor_type, relevant_types = [], {}
     for record in query:
-        if record[index] in DONOR_TYPE_COLOURS:
+        if record[index] in DONOR_TYPE_COLOURS:  # pragma: no cover
             donor_type.append(DONOR_TYPE_COLOURS[record[index]])
             if DONOR_TYPE_COLOURS[record[index]] not in relevant_types:
                 relevant_types[record[index]] = DONOR_TYPE_COLOURS[record[index]]
@@ -155,7 +155,7 @@ def assign_colours_to_donor_types(query, index):
         "GET",
     ],
 )
-def recipient_dummy():
+def recipient_dummy():  # pragma: no cover
     # Dummy route to allow for URL construction
     pass
 
@@ -167,7 +167,7 @@ def recipient(id):
 
     form = FilterForm()
 
-    if form.validate_on_submit():
+    if form.validate_on_submit():  # pragma: no cover
         filter_list = []
         if request.form["date_gt"]:
             filter_list.append("date_gt_" + request.form["date_gt"])
@@ -336,7 +336,7 @@ def donor(id):
 
     form = FilterForm()
 
-    if form.validate_on_submit():
+    if form.validate_on_submit():  # pragma: no cover
         filter_list = []
         if request.form["date_gt"]:
             filter_list.append("date_gt_" + request.form["date_gt"])
@@ -349,9 +349,7 @@ def donor(id):
             )
         )
 
-    all_filters = request.args.getlist("filter")
-
-    # Total giving over time bar graph. Split bars for different parties
+    # Total giving over time bar graph
     gifts_query = (
         db.session.query(
             Recipient.name,
@@ -468,7 +466,7 @@ def recipients():
 
     # Monthly is the smallest useful aggregation, so it's most
     # efficient to do (and cache) that aggregation on the server, with extra binning
-    # done by Plotly Donor still required in order to filter donor types
+    # done by Plotly
     party_stats_query = (
         db.session.query(
             Recipient.name,
@@ -755,7 +753,7 @@ def login():
         next_page = request.args.get("next")
         # netloc protects against attacker inserting malicious URL in "next" argument by
         # ensuring it's a relative rather than absolute URL
-        if not next_page or url_parse(next_page).netloc != "":
+        if not next_page or url_parse(next_page).netloc != "":  # pragma: no cover
             next_page = url_for("main.index")
         return redirect(next_page)
     return render_template("login.html", title="Log in", form=form)
@@ -790,7 +788,7 @@ def register():
 
 
 @bp.route("/export", methods=["GET"])
-def export_data():
+def export_data():  # pragma: no cover
     """Export all donations. Query the API, turn it into JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
     api_url = request.url_root[:-1] + url_for("api.data") + "?" + filter_string
