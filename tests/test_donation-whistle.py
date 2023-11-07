@@ -7,12 +7,13 @@ parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 
 from datetime import date
-import pprint
+from io import BytesIO
 import json
 import unittest
 
 from config import Config
 from flask import current_app
+from werkzeug.datastructures import FileStorage
 
 from app import create_app, db
 from app.models import (
@@ -28,6 +29,7 @@ from app.models import (
 
 from app.db_import import routes as db_import
 from app.api import routes as api
+from app.alias import forms as alias_forms
 
 
 class TestConfig(Config):
@@ -77,11 +79,10 @@ class TestWebApp(unittest.TestCase):
     def test_index(self):
         response = self.client.get("/index")
         assert response.status_code == 200
-        html = response.get_data(as_text=True)
-        assert "<h1>All donations</h1>" in html
-        assert 'form action="/"' in html
-        assert 'input id="donor_type_individual"' in html
-        assert 'div id="table"' in html
+        assert "<h1>All donations</h1>" in response.text
+        assert 'form action="/"' in response.text
+        assert 'input id="donor_type_individual"' in response.text
+        assert 'div id="table"' in response.text
         # Probably not working because there's no data yet. #TODO: come back to this
         # when it is ready.
         # assert 'class="gridjs gridjs-container"' in html
@@ -102,8 +103,7 @@ class TestWebApp(unittest.TestCase):
             },
         )
         assert response.status_code == 200
-        html = response.get_data(as_text=True)
-        assert "Field must be equal to password." in html
+        assert "Field must be equal to password." in response.text
 
     def test_register_user_validation(self):
         self.login()
@@ -116,9 +116,8 @@ class TestWebApp(unittest.TestCase):
                 "repeat_password": "spamandeggs",
             },
         )
-        html = response.get_data(as_text=True)
-        assert "That username is taken. Please use a different one." in html
-        assert "That email is taken. Please use a different one." in html
+        assert "That username is taken. Please use a different one." in response.text
+        assert "That email is taken. Please use a different one." in response.text
 
     def test_register_user(self):
         self.login()
@@ -141,8 +140,7 @@ class TestWebApp(unittest.TestCase):
             follow_redirects=True,
         )
         assert response.status_code == 200
-        html = response.get_data(as_text=True)
-        assert '<a class="nav-link" href="/logout">Log out</a>' in html
+        assert '<a class="nav-link" href="/logout">Log out</a>' in response.text
 
     def test_relevancy_check(self):
         dummy = {
@@ -183,8 +181,7 @@ VIRGINIA HOUSE
     def test_last_download(self):
         self.login()
         response = self.client.get("/db_import/db_import")
-        html = response.get_data(as_text=True)
-        assert "01 January 2023" in html
+        assert "01 January 2023" in response.text
 
     def db_import(self):
         self.login()
@@ -207,7 +204,7 @@ VIRGINIA HOUSE
             db.session.query(DonorAlias).filter_by(name="KGL (Estates) Ltd").first()
             is not None
         )
-        assert db.session.query(DonorAlias).count() == 14
+        assert db.session.query(DonorAlias).count() == 15
         assert (
             db.session.query(Donation).filter_by(ec_ref="C0476383").first().value
             == 2500
@@ -263,7 +260,7 @@ VIRGINIA HOUSE
             "/api/data", method="GET", data={"sort": False}
         ):
             query = db.session.scalars(api.apply_sort(query))
-            assert query.first().id == 14
+            assert query.first().id == 15
         query = db.select(Donation).join(Donor).join(DonorAlias)
         with self.app.test_request_context(
             "/api/data?sort=donor",
@@ -283,17 +280,17 @@ VIRGINIA HOUSE
         self.db_import()
 
         response = self.client.get(
-            "/api/data?filter=recipient_labour_party&filter=date_gt_2019-11-30"
+            "/api/data?filter=recipient_labour_party&filter=date_gt_2019-12-10"
         )
         return_data = json.loads(response.text)["data"]
         assert len(return_data) == 1
-        assert return_data[0]["electoral_commission_donation_id"] == "C0476383"
+        assert return_data[0]["electoral_commission_donation_id"] == "C0476397"
 
         response = self.client.get(
             "/api/data?filter=recipient_labour_party&filter=recipient_other"
         )
         return_data = json.loads(response.text)["data"]
-        assert len(return_data) == 5
+        assert len(return_data) == 6
         assert return_data[0]["electoral_commission_donation_id"] == "C0559402"
 
         response = self.client.get(
@@ -314,7 +311,7 @@ VIRGINIA HOUSE
         assert return_data[0]["electoral_commission_donation_id"] == "C0418547"
 
         response = self.client.get(
-            "/api/data?filter=is_legacy_false&filter=date_lt_2019-11-05"
+            "/api/data?filter=is_legacy_false&filter=date_lt_2019-11-01"
         )
         return_data = json.loads(response.text)["data"]
         assert len(return_data) == 1
@@ -332,13 +329,136 @@ VIRGINIA HOUSE
 
         response = self.client.get("/api/data?sort=donor")
         return_data = json.loads(response.text)
-        assert return_data["total"] == 14
+        assert return_data["total"] == 15
         assert return_data["data"][0]["recipient_id"] == 5
 
         response = self.client.get("/api/data?start=3&length=2")
         return_data = json.loads(response.text)["data"]
         assert len(return_data) == 2
-        assert return_data[0]["recipient_id"] == 1
+        assert return_data[0]["recipient_id"] == 3
 
+    def test_aliases(self):
+        self.db_import()
 
-# "/api/data?filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit&sort=%2Bdonor&sort=%2Bdonor&sort=%2Bdonor&start=0&length=100",
+        # Aliases
+        response = self.client.get("/alias/aliases")
+        assert "<li>M &amp; M Supplies (UK) PLC </li>" in response.text
+
+        # create_new alias
+        response = self.client.get("alias/create_new")
+        assert "<h1>Create a new alias</h1>" in response.text
+        assert (
+            '<button type="button" class="btn btn-secondary" id="clearButton">'
+            in response.text
+        )
+        assert "Simon J Collins &amp; Associates Limited" in response.text
+
+        # Out of range alias
+        with self.assertRaises(Exception) as ctx:
+            response = self.client.get(
+                '/alias/new?selected_donors=["10302","4"]',
+                follow_redirects=True,
+            )
+
+        assert "Alias id 10302 does not refer to an alias." in str(ctx.exception)
+
+        # Create alias
+        response = self.client.get(
+            '/alias/new?selected_donors=["11","4"]',
+            follow_redirects=True,
+        )
+        assert "<h1>Confirm new alias creation?</h1>" in response.text
+        assert "<h2> Unite the Union </h2>" in response.text
+
+        response = self.client.post(
+            '/alias/new?selected_donors=["11","4","14"]',
+            follow_redirects=True,
+            data={"alias_name": "Unite the Union"},
+        )
+        assert (
+            """<a href="/alias/16">Unite the Union</a>,
+          which refers to:</li>"""
+            in response.text
+        )
+
+        response = self.client.post(
+            '/alias/new?selected_donors=["3","5"]',
+            follow_redirects=True,
+            data={"alias_name": "Unite the Union"},
+        )
+        assert 'info" role="alert">That alias name is already taken.' in response.text
+
+        # Add alias (#TODO when built; you'd just take 14 from above and put it here)
+        # response = self.client.post(
+        #     '/alias/new?selected_donors=["14","16"]',
+        #     follow_redirects=True,
+        #     data={"alias_name": "Unite the Union"},
+        # )
+        #
+        # assert (
+        #     """<a href="/alias/17">Unite the Union</a>,
+        #   which refers to:</li>"""
+        #     in response.text
+        # )
+        # assert "Ooonite" in response.text
+
+        # Update alias
+        response = self.client.post(
+            "/alias/16",
+            follow_redirects=True,
+            data={"alias_name": "Delete Me", "alias_note": "Ready for deletion"},
+        )
+        assert "<h1>Alias detail: Delete Me</h1>" in response.text
+
+        # Delete donor from alias
+        response = self.client.get("/alias/delete/16/14")
+        assert "Are you sure you want Ooonite to be listed separately?" in response.text
+        response = self.client.post("/alias/delete/16/14")
+        donors = (
+            db.session.scalars(db.select(DonorAlias).filter_by(id=16)).first().donors
+        )
+        assert [donor.id for donor in donors] == [4, 11]
+
+        response = self.client.get("/alias/delete/16")
+        assert "<h1>Confirm delete alias: Delete Me</h1>" in response.text
+
+        # Delete alias altogether
+        response = self.client.post("/alias/delete/16")
+        assert (
+            len(db.session.scalars(db.select(DonorAlias).filter_by(id=16)).all()) == 1
+        )
+
+    def test_export_aliases(self):
+        self.db_import()
+        response = self.client.get("/alias/export")
+        assert json.loads(response.text)[5]["donors"] == ["Mr Edward T Baxter"]
+
+    def test_import_aliases(self):
+        self.db_import()
+        self.client.post(
+            '/alias/new?selected_donors=["11","4"]', 
+            follow_redirects=True, 
+            data={"alias_name": "Unite the Union"}
+        )
+
+        with self.assertRaises(Exception) as ctx:
+            self.client.post(
+                "/alias/import",
+                follow_redirects=True, 
+                data={"json": open("tests/bad_json.json", "rb")},
+            )
+        assert "Error decoding JSON:" in str(ctx.exception)
+
+        self.client.post(
+            "/alias/import",
+            follow_redirects=True, 
+            data={"json": open("tests/dummy_alias_export.json", "rb")},
+        )
+        assert (
+            db.session.scalars(db.select(DonorAlias).filter_by(id=31)).first().name == "Unite the Union"
+        ) 
+
+        request = self.client.get("/alias/import")
+        assert '<form action="" method="POST" enctype="multipart/form-data">' in request.text
+        assert "downloading them as a JSON file or upload" in request.text
+

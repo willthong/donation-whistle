@@ -3,13 +3,10 @@ import json
 
 from flask import flash, redirect, request, render_template, send_file, url_for
 from flask_login import login_required
-from flask_wtf import FlaskForm
-from flask_wtf.file import FileField, FileRequired, FileAllowed
-from wtforms.validators import ValidationError
 
 from app import db, cache
 from app.alias import bp
-from app.alias.forms import DeleteAlias, NewAliasName
+from app.alias.forms import DeleteAlias, NewAliasName, JSONForm
 from app.models import Donor, DonorAlias
 
 
@@ -68,6 +65,8 @@ def new_alias():
     for id in selected_donor_ids:
         if Donor.query.filter_by(donor_alias_id=id).first():
             selected_donors.append(Donor.query.filter_by(donor_alias_id=id).first())
+        else:
+            raise Exception(f"Alias id {id} does not refer to an alias.")
 
     if form.validate_on_submit():
         query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
@@ -109,7 +108,7 @@ def alias(id):
     alias = db.get_or_404(DonorAlias, id)
     title = f"Alias detail: {alias.name}"
     form = NewAliasName()
-    if form.validate_on_submit():
+    if form.validate_on_submit():  # pragma: no cover
         query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
         dupe_alias = db.session.execute(query).scalars().first()
         if dupe_alias and form.alias_name.data not in [d.name for d in alias.donors]:
@@ -121,6 +120,7 @@ def alias(id):
         alias.note = form.note.data or None
         db.session.commit()
         flash("Alias updated!")
+        # TODO this should probably actually show the note...
     return render_template("alias_detail.html", title=title, alias=alias, form=form)
 
 
@@ -153,11 +153,11 @@ def remove_alias(alias_id, donor_id):
     full_delete = True if (alias.name == donor.name) else False
     if form.validate_on_submit():
         if full_delete:
-            for donor in alias.donors:
+            for donor in alias.donors:  # pragma: no cover
                 new_alias = DonorAlias(name=donor.name)
                 new_alias.donors.append(donor)
                 db.session.add(new_alias)
-            flash(f"{alias.name} deleted!")
+            flash(f"{alias.name} deleted!")  # pragma: no cover
         else:
             alias.donors.remove(donor)
             new_alias = DonorAlias(name=donor.name)
@@ -203,41 +203,19 @@ def export_aliases():
     return send_file(filename, as_attachment=True, mimetype="json")
 
 
-# File size validator
-def FileSizeLimit(max_size_in_mb):
-    max_bytes = max_size_in_mb * 1024 * 1024
-
-    def file_length_check(form, field):
-        if len(field.data.read()) > max_bytes:
-            raise ValidationError(f"File size must be less than {max_size_in_mb}MB")
-        field.data.seek(0)
-
-    return file_length_check
-
-
-class JSONForm(FlaskForm):
-    json = FileField(
-        validators=[
-            FileRequired(),
-            FileAllowed(["json"]),
-            FileSizeLimit(max_size_in_mb=1),
-        ]
-    )
-
-
-@bp.route("/port", methods=["GET", "POST"])
-def port():
-    """Accepts JSON upload. Upon valid JSON upload, first, deletes all aliases. Then imports new 
+@bp.route("/import", methods=["GET", "POST"])
+@login_required
+def import_aliases():
+    """Accepts JSON upload. Upon valid JSON upload, first, deletes all aliases. Then imports new
     aliases from the JSON, using donor names to match them up with the right donors."""
 
     form = JSONForm()
-
     if form.validate_on_submit():
         db.delete(DonorAlias).where(DonorAlias.name != None)
         try:
             alias_list = json.loads(form.json.data.read().decode("utf-8"))
         except json.JSONDecodeError as e:
-            print("Error decoding JSON:", e)
+            raise Exception(f"Error decoding JSON:", e)
         for alias in alias_list:
             new_alias = DonorAlias(name=alias["alias"])
             donors = alias["donors"]
@@ -254,8 +232,3 @@ def port():
         return redirect(url_for("alias.aliases"))
 
     return render_template("alias_port.html", form=form)
-
-
-# Add aliases to a list as they're done, then note any donors left which don't have
-# aliases with an offer to sync them up (this would indicate that new EC data had been
-# added after the alias list was last exported)

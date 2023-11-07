@@ -34,19 +34,6 @@ class RegistrationForm(FlaskForm):
         if user is not None:
             raise ValidationError("That email is taken. Please use a different one.")
 
-class NewAliasName(FlaskForm):
-    alias_name = StringField("New alias name", validators=[DataRequired()])
-    note = StringField("Notes")
-    submit = SubmitField("Save alias")
-    
-class EditAlias(FlaskForm):
-    alias_name = StringField("New alias name", validators=[DataRequired()])
-    note = StringField("Notes")
-    submit = SubmitField("Save alias")
-    
-class DeleteAlias(FlaskForm):
-    submit = SubmitField("Confirm alias deletion")
-    
 class FilterForm(FlaskForm):
     recipient_labour_party = BooleanField("Labour Party")
     recipient_conservative_and_unionist_party = BooleanField("Conservative Party")
