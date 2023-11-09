@@ -27,6 +27,7 @@ from app.models import (
 )
 
 from app.db_import import routes as db_import
+from app.db_import import tasks as db_import_tasks
 from app.api import routes as api
 from app.main import routes as main
 
@@ -171,18 +172,18 @@ class TestWebApp(unittest.TestCase):
             "DonationAction": "",
             "ReportingPeriodName": "Q2 2023",
         }
-        assert db_import.relevancy_check(dummy)
+        assert db_import_tasks.relevancy_check(dummy)
         dummy["AccountingUnitName"] = "Mordor CLP"
-        assert not db_import.relevancy_check(dummy)
+        assert not db_import_tasks.relevancy_check(dummy)
         dummy["AccountingUnitName"] = "Central Party"
         dummy["DonorStatus"] = "Unidentifiable Donor"
-        assert not db_import.relevancy_check(dummy)
+        assert not db_import_tasks.relevancy_check(dummy)
         dummy["DonorStatus"] = "Individual"
         dummy["DonationAction"] = "Forfeited"
-        assert not db_import.relevancy_check(dummy)
+        assert not db_import_tasks.relevancy_check(dummy)
         dummy["DonationAction"] = ""
         dummy["ReportingPeriodName"] = "Pre-poll 5 - Party (27/04/2015 - 03/05/2015)"
-        assert not db_import.relevancy_check(dummy)
+        assert not db_import_tasks.relevancy_check(dummy)
 
     def test_remove_line_breaks(self):
         dummy = {
@@ -192,7 +193,7 @@ VIRGINIA HOUSE
             "IsBequest": """TRUE
             """,
         }
-        db_import.remove_line_breaks(dummy)
+        db_import_tasks.remove_line_breaks(dummy)
         assert dummy["DonorName"] == "G1 GROUP PLC VIRGINIA HOUSE "
         assert (
             dummy["IsBequest"]
@@ -202,12 +203,12 @@ VIRGINIA HOUSE
 
     def test_last_download(self):
         self.login()
-        response = self.client.get("/db_import/db_import")
+        response = self.client.get("/db_import/dl_and_import")
         assert "01 January 2023" in response.text
 
     def db_import(self):
         self.login()
-        self.client.post("/db_import/db_import")
+        db_import_tasks.db_import()
 
     def test_db_import(self):
         self.db_import()

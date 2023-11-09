@@ -15,3 +15,4 @@ class Config(object):
     CACHE_TYPE = "FileSystemCache"
     CACHE_DIR = "./cache"
     RAW_DATA_LOCATION = "./"
+    REDIS_URL = os.environ.get("REDIS_URL") or "redis://localhost:6379"

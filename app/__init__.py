@@ -6,6 +6,8 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+from redis import Redis
+import rq
 
 cache = Cache()
 db = SQLAlchemy()
@@ -17,6 +19,9 @@ migrate = Migrate()
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    app.redis = Redis.from_url(app.config["REDIS_URL"])
+    app.task_queue = rq.Queue("donation-whistle-tasks", connection=app.redis)
 
     cache.init_app(app)
     db.init_app(app)
