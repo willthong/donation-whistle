@@ -7,7 +7,7 @@ from datetime import date, datetime
 from flask import current_app
 import csv
 import re
-from rq import get_current_job
+import rq
 import ssl
 import sys
 import urllib
@@ -56,8 +56,8 @@ DONOR_TYPES = [
 ]
 
 
-def _set_task_progress(progress):
-    job = get_current_job()
+def _set_task_progress(progress):  # pragma: no cover
+    job = rq.get_current_job()
     if job:
         job.meta["progress"] = progress
         job.save_meta()
@@ -66,6 +66,7 @@ def _set_task_progress(progress):
         if progress >= 100 and task.complete == False:
             task.complete = True
         db.session.commit()
+
 
 def relevancy_check(record):
     """Returns True if a record is relevant, or False if not"""
@@ -87,6 +88,7 @@ def remove_line_breaks(row):
             row[field] = row[field].replace("\n", " ").replace("\r", "")
     return row
 
+
 def import_record(record):
     if not relevancy_check(record):
         return
@@ -96,18 +98,14 @@ def import_record(record):
     if re.search(r"De-registered", record["RegulatedEntityName"]):
         deregistered = record["RegulatedEntityName"].split()[-1]
         deregistered = datetime.strptime(deregistered, "%d/%m/%y]")
-        recipient_name = re.split(r"( \[)", record["RegulatedEntityName"])[
-            0
-        ]
+        recipient_name = re.split(r"( \[)", record["RegulatedEntityName"])[0]
     else:
         recipient_name = record["RegulatedEntityName"]
         deregistered = None
 
     query = db.select(Recipient).filter_by(name=recipient_name)
     if not db.session.execute(query).scalars().first():
-        recipient = Recipient(
-            name=recipient_name, deregistered=deregistered
-        )
+        recipient = Recipient(name=recipient_name, deregistered=deregistered)
         db.session.add(recipient)
     else:
         recipient = db.session.execute(query).scalars().first()
@@ -124,9 +122,7 @@ def import_record(record):
     # Donors and aliases
     query = db.select(Donor).filter_by(name=donor_name)
     if db.session.execute(query).scalars().first():
-        donor = (
-            db.session.execute(query).scalars().first()
-        )  # pragma: no cover
+        donor = db.session.execute(query).scalars().first()  # pragma: no cover
     else:
         donor = Donor(
             name=donor_name,
@@ -162,58 +158,71 @@ def import_record(record):
         db.session.add(new_donation)
 
 
-
 def download_raw_data():  # pragma: no cover
     # Ignore SSL certificate errors
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    print("Contacting server...")
     filename = "raw_data_" + str(date.today()) + ".csv"
     urllib.request.urlretrieve(URL, filename)
-    # A fudge. Calling 2 methods from routes, one after another, was bad because it
-    # would require the route to know when download_raw_data was finished. Putting both
-    # download_raw_data and db_import in tasks was bad because there was no way to set a
-    # combined progress. Instead, we make 1 task and make up a rough progress
-    # percentage.
     return filename
+
+
+def select_type_list(field):
+    if field == DonationType:
+        return DONATION_TYPES
+    if field == DonorType:
+        return DONOR_TYPES
+    return
+
+
+def add_missing_entries(field):
+    type_list = select_type_list(field)
+    for item in type_list:
+        query = db.select(field).filter_by(name=item)
+        if not db.session.execute(query).scalars().first():  # pragma: no cover
+            db.session.add(field(name=item))
+
+
+def count_lines(data):
+    with open(data, newline="") as infile:
+        reader = csv.DictReader(infile)
+        total_records = 0
+        for record in reader:
+            total_records += 1
+    return total_records
+
 
 def db_import():
     try:
+        _set_task_progress(0)
         if current_app.config["TESTING"]:
-            downloaded_data = current_app.config["RAW_DATA_LOCATION"] + "raw_data_2023-01-01.csv"
+            downloaded_data = (
+                current_app.config["RAW_DATA_LOCATION"] + "raw_data_2023-01-01.csv"
+            )
         else:
-            _set_task_progress(0)
-            downloaded_data = download_raw_data()
-            _set_task_progress(5)
-        for donation_type in DONATION_TYPES:
-            query = db.select(DonationType).filter_by(name=donation_type)
-            if not db.session.execute(query).scalars().first():  # pragma: no cover
-                db.session.add(DonationType(name=donation_type))
-        for donor_type in DONOR_TYPES:  # pragma: no cover
-            query = db.select(DonorType).filter_by(name=donor_type)
-            if not db.session.execute(query).scalars().first():  # pragma: no cover
-                db.session.add(DonorType(name=donor_type))
+            # A fudge. Calling 2 methods from routes, one after another, was bad because it
+            # would require the route to know when download_raw_data was finished. Putting both
+            # download_raw_data and db_import in tasks was bad because there was no way to set a
+            # combined progress. Instead, we make 1 task and make up a rough progress
+            # percentage.
+            downloaded_data = download_raw_data()  # pragma: no cover
+        _set_task_progress(5)  # pragma: no cover
+        add_missing_entries(DonationType)
+        add_missing_entries(DonorType)
 
-        with open(downloaded_data, newline="") as infile:
-            reader = csv.DictReader(infile)
-            total_records = 0
-            for record in reader:
-                total_records += 1
+        total_records = count_lines(downloaded_data)
 
         with open(downloaded_data, newline="") as infile:
             reader = csv.DictReader(infile)
             for index, record in enumerate(reader):
                 import_record(record)
                 # Fake percentage function
-                if current_app.config["TESTING"]:
-                    db.session.commit()
-                else:
-                    _set_task_progress(round(((index / total_records * 95)) + 5, 2))
-                    # Session commit will be handled by _set_task_progress
+                _set_task_progress(round(((index / total_records * 95)) + 5, 2))
         cache.clear()
-    except:
-        app.logger.error("Unhandled exception", exc_info=sys.exc_info())
+    except:  # pragma: no cover
+        app.logger.error(
+            "Unhandled exception", exc_info=sys.exc_info()
+        )  # pragma: no cover
     finally:
-        if not current_app.config["TESTING"]:
-            _set_task_progress(100)
+        _set_task_progress(100)

@@ -9,10 +9,12 @@ sys.path.append(parent_dir)
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 import json
+import rq
 import unittest
 
 from config import Config
 from flask import current_app
+from flask_login import current_user
 
 from app import create_app, db
 from app.models import (
@@ -23,11 +25,11 @@ from app.models import (
     DonorType,
     DonationType,
     Recipient,
-    load_user,
+    Task
 )
+from app.models import load_user
 
-from app.db_import import routes as db_import
-from app.db_import import tasks as db_import_tasks
+from app.db_import import tasks as db_import
 from app.api import routes as api
 from app.main import routes as main
 
@@ -37,7 +39,6 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     WTF_CSRF_ENABLED = False
     RAW_DATA_LOCATION = "tests/"
-
 
 class TestWebApp(unittest.TestCase):
     def populate_db(self):
@@ -165,6 +166,17 @@ class TestWebApp(unittest.TestCase):
         )
         assert 'alert-info" role="alert">Only admins can create new users</div>' in response.text
 
+    def test_jobs(self):
+        with self.client:
+            self.login()
+            assert current_user.launch_task().user == current_user
+        # Can't test _set_task_progress because "calling get_current_job() outside of the 
+        # context of a job function will return None.
+        # https://python-rq.org/docs/jobs/#accessing-the-current-job-from-within-the-job-function
+            assert current_user.get_task_in_progress().user == current_user
+            assert isinstance(db.session.scalars(db.select(Task)).first().get_rq_job(), rq.job.Job)
+            assert db.session.scalars(db.select(Task)).first().get_progress() == 100
+
     def test_relevancy_check(self):
         dummy = {
             "AccountingUnitName": "Central Party",
@@ -172,18 +184,18 @@ class TestWebApp(unittest.TestCase):
             "DonationAction": "",
             "ReportingPeriodName": "Q2 2023",
         }
-        assert db_import_tasks.relevancy_check(dummy)
+        assert db_import.relevancy_check(dummy)
         dummy["AccountingUnitName"] = "Mordor CLP"
-        assert not db_import_tasks.relevancy_check(dummy)
+        assert not db_import.relevancy_check(dummy)
         dummy["AccountingUnitName"] = "Central Party"
         dummy["DonorStatus"] = "Unidentifiable Donor"
-        assert not db_import_tasks.relevancy_check(dummy)
+        assert not db_import.relevancy_check(dummy)
         dummy["DonorStatus"] = "Individual"
         dummy["DonationAction"] = "Forfeited"
-        assert not db_import_tasks.relevancy_check(dummy)
+        assert not db_import.relevancy_check(dummy)
         dummy["DonationAction"] = ""
         dummy["ReportingPeriodName"] = "Pre-poll 5 - Party (27/04/2015 - 03/05/2015)"
-        assert not db_import_tasks.relevancy_check(dummy)
+        assert not db_import.relevancy_check(dummy)
 
     def test_remove_line_breaks(self):
         dummy = {
@@ -193,7 +205,7 @@ VIRGINIA HOUSE
             "IsBequest": """TRUE
             """,
         }
-        db_import_tasks.remove_line_breaks(dummy)
+        db_import.remove_line_breaks(dummy)
         assert dummy["DonorName"] == "G1 GROUP PLC VIRGINIA HOUSE "
         assert (
             dummy["IsBequest"]
@@ -208,7 +220,7 @@ VIRGINIA HOUSE
 
     def db_import(self):
         self.login()
-        db_import_tasks.db_import()
+        db_import.db_import()
 
     def test_db_import(self):
         self.db_import()
@@ -234,7 +246,13 @@ VIRGINIA HOUSE
         )
         # Check for dupe EC ref record in raw_data_file
         assert db.session.query(Donation).filter_by(ec_ref="C0476383").count() == 1
+        db_import.add_missing_entries(DonorType)
 
+    def test_select_type_list(self):
+        assert db_import.select_type_list(DonationType) == db_import.DONATION_TYPES
+        assert db_import.select_type_list(DonorType) == db_import.DONOR_TYPES
+        assert db_import.select_type_list("foobar") is None
+        
     def test_models(self):
         self.db_import()
         assert (
@@ -608,5 +626,6 @@ VIRGINIA HOUSE
         response = self.client.get("/recipients", follow_redirects=True)
         assert '{"data":[{"customdata":["Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party"],"histfunc":"sum","hovertemplate":"' in response.text
         assert 'marker":{"color":"rgb(0, 135, 220)"},"name":"Conservative Party","x":["2019-11-01","2019-12-01","2020-01-01","2020-02-01","2020-03-01","2020-04-01","2020-05-01","2020-06-01","2020-07-01","2020-08-01","2020-09-01","2020-10-01","2020-11-01","2020-12' in response.text
+
 
 

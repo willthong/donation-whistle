@@ -1,4 +1,5 @@
 from datetime import datetime
+import fakeredis
 import redis
 import rq
 from typing import List
@@ -145,7 +146,7 @@ class User(UserMixin, db.Model):
 
     def launch_task(self, *args, **kwargs):
         rq_job = current_app.task_queue.enqueue(
-            "app.db_import.tasks.db_import", self.id, *args, **kwargs
+            "app.db_import.tasks.db_import", *args, **kwargs
         )
         task = Task(id=rq_job.get_id(), user=self)
         db.session.add(task)
@@ -168,10 +169,10 @@ class Task(db.Model):  # Store request context after request has vanished
     user: db.Mapped["User"] = db.relationship(back_populates="tasks")
     complete = db.mapped_column(db.Boolean)
 
-    def get_rq_job(self):
+    def get_rq_job(self): 
         try:
             rq_job = rq.job.Job.fetch(self.id, connection=current_app.redis)
-        except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError):
+        except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError): # pragma: no cover
             return None
         return rq_job
 

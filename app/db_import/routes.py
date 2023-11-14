@@ -31,8 +31,8 @@ def dl_and_import():
         return render_template(
             "db_import.html", form=form, last_download=last_download()
         )
-    if current_user.get_task_in_progress():
+    if current_user.get_task_in_progress():  # pragma: no cover
         flash("A database import is currently in progress.")
         return redirect(url_for("main.index"))
-    current_user.launch_task()
-    return redirect(url_for("main.index"))
+    current_user.launch_task()  # pragma: no cover
+    return redirect(url_for("main.index"))  # pragma: no cover
