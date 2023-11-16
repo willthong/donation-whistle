@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 
 from flask import request
 
@@ -56,9 +56,9 @@ def data():
         if filter.startswith("is_legacy"): is_legacy_filters.append(filter)
         if filter.startswith("donor_alias"): donor_alias_filters.append(filter)
         if filter.startswith("date_gt_"):
-            start_date_filter = datetime.strptime(filter[-10:], "%Y-%m-%d")
+            start_date_filter = dt.datetime.strptime(filter[-10:], "%Y-%m-%d")
         if filter.startswith("date_lt_"):
-            end_date_filter = datetime.strptime(filter[-10:], "%Y-%m-%d")
+            end_date_filter = dt.datetime.strptime(filter[-10:], "%Y-%m-%d")
 
     # Each filter bucket is an additional group of ORs added as an AND, so need to be 
     # grouped together

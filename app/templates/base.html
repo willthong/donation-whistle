@@ -10,6 +10,7 @@
         <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
         <link href="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
       <style>
         [data-column-id="amount"] {
             text-align: right;
@@ -26,7 +27,6 @@
       </style>
     {% block head %}
     {% endblock %}
-      </head>
 
   {% block navbar %}
   <div class="container">
@@ -59,6 +59,18 @@
     </nav>
   {% endblock %}
 
+    {% if current_user.is_authenticated %}
+      {% with tasks = current_user.get_tasks_in_progress() %}
+        {% if tasks %}
+          {% for task in tasks %}
+            <div class="alert alert-success" role="alert">
+              {{ task.description }}
+              Database import in progress: <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    {% endif %}
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
@@ -67,13 +79,36 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
-    {% block app_content %}
-    {% endblock %}
+
+  {% block app_content %}
+  {% endblock %}
   </div>
 
     <link rel="manifest" href="/static/site.webmanifest">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>       
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"> </script>       
+    {% if current_user.is_authenticated%}
+      <script>
+        function set_task_progress(task_id, progress) {
+            $('#' + task_id + '-progress').text(progress);
+        }
+        $(function() {
+            var since = 0;
+            setInterval(function() {
+                $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
+                    function(notifications) {
+                      if (notifications.name == 'task_progress')
+                        set_task_progress(
+                          notifications.data.task_id,
+                          notifications.data.progress
+                        );
+                      since = notifications.timestamp;
+                    }
+                );
+            }, 1000);
+        });
+      </script>
+    {% endif %}
   {% block scripts %}
   {% endblock %}
-
 </html>

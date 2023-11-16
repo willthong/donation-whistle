@@ -1,11 +1,11 @@
 import csv
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-from plotly import graph_objects as go
+import datetime as dt
+import dateutil.relativedelta as relativedelta
+import plotly.graph_objects as go
 import requests
-from werkzeug.urls import url_parse
+import werkzeug
 
-from flask import flash, redirect, request, render_template, send_file, url_for
+from flask import flash, jsonify, redirect, request, render_template, send_file, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
@@ -19,6 +19,7 @@ from app.models import (
     DonorAlias,
     Donor,
     Donation,
+    Notification,
     Recipient,
     DonationType,
 )
@@ -71,6 +72,20 @@ MAIN_PARTIES = [
     "All other parties",
 ]
 
+PRETTY_FIELD_NAMES = {
+    "electoral_commission_donation_id": "Electoral Commission donation ID",
+    "electoral_commission_donor_id": "Electoral Commission donor ID",
+    "date": "Donation date",
+    "donor": "Donor name (alias)",
+    "original_donor_name": "Original donor name",
+    "alias_id": "Donor alias ID",
+    "donor_type": "Donor type",
+    "recipient": "Recipient name",
+    "recipient_id": "Recipient ID",
+    "type": "Donation type",
+    "amount": "Donation amount",
+    "legacy": "Is legacy?",
+}
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
@@ -124,11 +139,11 @@ def apply_date_filters(query, all_filters):
     for filter in all_filters:
         if filter.startswith("date_gt_"):
             query = query.where(
-                Donation.date >= datetime.strptime(filter[-10:], "%Y-%m-%d")
+                Donation.date >= dt.datetime.strptime(filter[-10:], "%Y-%m-%d")
             )
         if filter.startswith("date_lt_"):
             query = query.where(
-                Donation.date <= datetime.strptime(filter[-10:], "%Y-%m-%d")
+                Donation.date <= dt.datetime.strptime(filter[-10:], "%Y-%m-%d")
             )
     return query
 
@@ -373,7 +388,7 @@ def donor(id):
 
     parties = {}
     for key in bar_names:
-        parties[key] = [0 for i in range(0, len(date_series))]
+        parties[key] = [0] * len(date_series)
     for record in gifts_query:
         date = int(record[1])
         index = date_series.index(date)
@@ -447,15 +462,19 @@ def convert_to_js_array(query):
     return output
 
 
+def generate_date_series(start_date, end_date):
+    date_series = []
+    while start_date < end_date:
+        date_series.append(start_date)
+        start_date += relativedelta.relativedelta(months=1)
+    return date_series
+
 @bp.route("/recipients")
 def recipients():
     # Generate dates
     start_date = db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
     end_date = db.session.query(db.func.max(Donation.date)).first()[0]
-    date_series = []
-    while start_date < end_date:
-        date_series.append(start_date)
-        start_date += relativedelta(months=1)
+    date_series = generate_date_series(start_date, end_date)
 
     donation_type_filter_statements = populate_filter_statements(
         OTHER_DONATION_TYPES, "donation_type_", DonationType.name
@@ -464,9 +483,8 @@ def recipients():
         OTHER_DONOR_TYPES, "donor_type_", Donor.donor_type_id
     )
 
-    # Monthly is the smallest useful aggregation, so it's most
-    # efficient to do (and cache) that aggregation on the server, with extra binning
-    # done by Plotly
+    # Monthly is the smallest useful aggregation, so it's most efficient to do (and cache) 
+    # that aggregation on the server, with extra binning done by Plotly
     party_stats_query = (
         db.session.query(
             Recipient.name,
@@ -485,10 +503,10 @@ def recipients():
 
     parties = {}
     for key in MAIN_PARTIES:
-        parties[key] = [0 for i in range(0, len(date_series))]
+        parties[key] = [0] * len(date_series)
 
     for record in party_stats_query:
-        date = datetime.strptime(record[1], "%Y-%m").date()
+        date = dt.datetime.strptime(record[1], "%Y-%m").date()
         index = date_series.index(date)
         parties = update_party_sums(parties, index, record[0], round(record[2], 2))
 
@@ -538,30 +556,30 @@ def recipients():
         data=[
             go.Histogram(
                 name="Conservative Party",
-                customdata=["Conservative Party" for value in date_series],
+                customdata=["Conservative Party"] * len(date_series),
                 x=date_series,
                 y=parties["Conservative and Unionist Party"],
-                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                xbins={"start": dt.datetime(2001, 1, 1), "size": "M12"},
                 marker_color="rgb(0, 135, 220)",
                 histfunc="sum",
                 hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
             ),
             go.Histogram(
                 name="Labour Party",
-                customdata=["Labour Party" for value in date_series],
+                customdata=["Labour Party"] * len(date_series),
                 x=date_series,
                 y=parties["Labour Party"],
-                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                xbins={"start": dt.datetime(2001, 1, 1), "size": "M12"},
                 marker_color="rgb(228, 0, 59)",
                 histfunc="sum",
                 hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
             ),
             go.Histogram(
                 name="Liberal Democrats",
-                customdata=["Liberal Democrats" for value in date_series],
+                customdata=["Liberal Democrats"] * len(date_series),
                 x=date_series,
                 y=parties["Liberal Democrats"],
-                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                xbins={"start": dt.datetime(2001, 1, 1), "size": "M12"},
                 marker_color="rgb(255, 159, 26)",
                 histfunc="sum",
                 hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
@@ -569,10 +587,10 @@ def recipients():
             ),
             go.Histogram(
                 name="Reform UK (formerly Brexit Party)",
-                customdata=["Reform UK" for value in date_series],
+                customdata=["Reform UK"] * len(date_series),
                 x=date_series,
                 y=parties["Reform UK"],
-                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                xbins={"start": dt.datetime(2001, 1, 1), "size": "M12"},
                 marker_color="rgb(0, 146, 180)",
                 histfunc="sum",
                 hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
@@ -580,10 +598,10 @@ def recipients():
             ),
             go.Histogram(
                 name="All other parties",
-                customdata=["All other parties" for value in date_series],
+                customdata=["All other parties"] * len(date_series),
                 x=date_series,
                 y=parties["All other parties"],
-                xbins={"start": datetime(2001, 1, 1), "size": "M12"},
+                xbins={"start": dt.datetime(2001, 1, 1), "size": "M12"},
                 marker_color="rgb(97, 224, 0)",
                 histfunc="sum",
                 hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
@@ -617,7 +635,7 @@ def recipients():
         },
     )
     figure.update_xaxes(
-        tick0=datetime(2001, 7, 2),
+        tick0=dt.datetime(2001, 7, 2),
         dtick="M12",
         tickformat="%Y",
     )
@@ -728,7 +746,6 @@ def donors():
             ),
         )
 
-    # Response
     return render_template(
         "donors.html",
         title="Donors",
@@ -753,7 +770,7 @@ def login():
         next_page = request.args.get("next")
         # netloc protects against attacker inserting malicious URL in "next" argument by
         # ensuring it's a relative rather than absolute URL
-        if not next_page or url_parse(next_page).netloc != "":  # pragma: no cover
+        if not next_page or werkzeug.urls.url_parse(next_page).netloc != "":  # pragma: no cover
             next_page = url_for("main.index")
         return redirect(next_page)
     return render_template("login.html", title="Log in", form=form)
@@ -788,34 +805,35 @@ def register():
 
 
 @bp.route("/export", methods=["GET"])
+@login_required
 def export_data():  # pragma: no cover
     """Export all donations. Query the API, turn it into JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
     api_url = request.url_root[:-1] + url_for("api.data") + "?" + filter_string
-    r = requests.get(api_url)
-    data = r.json()["data"]
+    data = requests.get(api_url).json()["data"]
     for record in data:
-        record["date"] = datetime.strptime(record["date"], "%a, %d %b %Y %H:%M:%S %Z")
+        record["date"] = dt.datetime.strptime(record["date"], "%a, %d %b %Y %H:%M:%S %Z")
         record["date"] = record["date"].strftime("%Y-%m-%d")
-    filename = "donation_whistle_export_" + datetime.now().strftime("%Y-%m-%d") + ".csv"
-    pretty_field_names = {
-        "electoral_commission_donation_id": "Electoral Commission donation ID",
-        "electoral_commission_donor_id": "Electoral Commission donor ID",
-        "date": "Donation date",
-        "donor": "Donor name (alias)",
-        "original_donor_name": "Original donor name",
-        "alias_id": "Donor alias ID",
-        "donor_type": "Donor type",
-        "recipient": "Recipient name",
-        "recipient_id": "Recipient ID",
-        "type": "Donation type",
-        "amount": "Donation amount",
-        "legacy": "Is legacy?",
-    }
+    filename = "donation_whistle_export_" + dt.datetime.now().strftime("%Y-%m-%d") + ".csv"
     with open("app/" + filename, "w") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=pretty_field_names.keys())
-        writer.writerow(dict(pretty_field_names))
+        writer = csv.DictWriter(csvfile, fieldnames=PRETTY_FIELD_NAMES.keys())
+        writer.writerow(dict(PRETTY_FIELD_NAMES))
         for record in data:
             writer.writerow(record)
-
     return send_file(filename, as_attachment=True, mimetype="csv")
+
+@bp.route("/notifications")
+@login_required
+def notifications():
+    since = request.args.get("since", 0.0, type=float)
+    stmt = (
+        db.select(Notification)
+        .where(Notification.user == current_user)
+        .where(Notification.timestamp > since)
+        .order_by(db.asc("timestamp"))
+    )
+    n = db.session.scalars(stmt).one_or_none()
+    if n:
+        return jsonify({"name": n.name, "data": n.get_data(), "timestamp": n.timestamp})
+    else:
+        return jsonify(None)

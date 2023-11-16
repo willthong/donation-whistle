@@ -1,7 +1,8 @@
-from datetime import datetime
-import fakeredis
+import datetime as dt
+import json
 import redis
 import rq
+import time
 from typing import List
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -26,7 +27,7 @@ class DonorAlias(db.Model):
 
     id = db.mapped_column(db.Integer, primary_key=True)
     name = db.mapped_column(db.String(100), index=True)
-    last_edited = db.mapped_column(db.DateTime, default=datetime.utcnow, index=True)
+    last_edited = db.mapped_column(db.DateTime, default=dt.datetime.utcnow, index=True)
     note = db.mapped_column(db.String(1000))
     donors: db.Mapped[List["Donor"]] = db.relationship(back_populates="donor_alias")
 
@@ -130,6 +131,7 @@ class User(UserMixin, db.Model):
     # Admins can add other users and import data. Normal users can only add aliases.
     is_admin = db.mapped_column(db.Boolean, index=True)
     tasks: db.Mapped[List["Task"]] = db.relationship(back_populates="user")
+    notifications: db.Mapped[List["Notification"]] = db.relationship(back_populates="user")
 
     # Preparing for eventual API
     token = db.Column(db.String(32), index=True, unique=True)
@@ -153,9 +155,26 @@ class User(UserMixin, db.Model):
         db.session.commit()
         return task
 
-    def get_task_in_progress(self):
-        return db.session.scalars(db.select(Task).filter_by(user = self)).first()
+    def get_tasks_in_progress(self):
+        return db.session.scalars(
+            db.select(Task).where(Task.user == self).where(Task.complete == None)
+        ).all()
 
+    def get_task_in_progress(self):
+        try:
+            task = db.session.scalars(
+                db.select(Task).where(Task.user == self).where(Task.complete == None)
+            ).one() 
+            return task
+        except:
+            return None
+            
+    def add_notification(self, name, data):
+        db.session.execute(db.delete(Notification).where(name == name))
+        notification = Notification(name=name, payload_json=json.dumps(data), user=self)
+        db.session.add(notification)
+        db.session.commit()
+        return 
 
 @login.user_loader
 def load_user(id):
@@ -180,5 +199,16 @@ class Task(db.Model):  # Store request context after request has vanished
         job = self.get_rq_job()
         return job.meta.get("progress", 0) if job is not None else 100
 
+class Notification(db.Model):
+    __tablename__ = "notification"
+    id = db.mapped_column(db.Integer, primary_key=True)
+    name = db.mapped_column(db.String(128), index=True)
+    user_id: db.Mapped[int] = db.mapped_column(db.ForeignKey("user.id"))
+    user: db.Mapped["User"] = db.relationship(back_populates="notifications")
+    timestamp = db.mapped_column(db.Float, index=True, default=time.time)
+    payload_json = db.mapped_column(db.Text)
+
+    def get_data(self):
+        return json.loads(str(self.payload_json))
 
 # TODO: donation makeup bar chart, comparative. Only needs to be annual.

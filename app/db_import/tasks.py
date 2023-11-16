@@ -56,18 +56,6 @@ DONOR_TYPES = [
 ]
 
 
-def _set_task_progress(progress):  # pragma: no cover
-    job = rq.get_current_job()
-    if job:
-        job.meta["progress"] = progress
-        job.save_meta()
-        task = db.session.scalars(db.select(Task).filter_by(id=job.get_id())).first()
-        # TODO: build notification
-        if progress >= 100 and task.complete == False:
-            task.complete = True
-        db.session.commit()
-
-
 def relevancy_check(record):
     """Returns True if a record is relevant, or False if not"""
     if (
@@ -188,9 +176,23 @@ def count_lines(data):
     with open(data, newline="") as infile:
         reader = csv.DictReader(infile)
         total_records = 0
-        for record in reader:
+        for _ in reader:
             total_records += 1
     return total_records
+
+
+def _set_task_progress(progress):  # pragma: no cover
+    job = rq.get_current_job()
+    if job:
+        job.meta["progress"] = progress
+        job.save_meta()
+        task = db.session.scalars(db.select(Task).filter_by(id=job.get_id())).first()
+        task.user.add_notification(
+            "task_progress", {"task_id": job.get_id(), "progress": progress}
+        )
+        if progress >= 100 and task.complete == None:
+            task.complete = True
+        db.session.commit()
 
 
 def db_import():
@@ -207,7 +209,7 @@ def db_import():
             # combined progress. Instead, we make 1 task and make up a rough progress
             # percentage.
             downloaded_data = download_raw_data()  # pragma: no cover
-        _set_task_progress(5)  # pragma: no cover
+        _set_task_progress(15)  # pragma: no cover
         add_missing_entries(DonationType)
         add_missing_entries(DonorType)
 
@@ -217,8 +219,11 @@ def db_import():
             reader = csv.DictReader(infile)
             for index, record in enumerate(reader):
                 import_record(record)
-                # Fake percentage function
-                _set_task_progress(round(((index / total_records * 95)) + 5, 2))
+                # Initially tried reporting progress every time, but this caused a
+                # 'prepared state' SQLAlchemy error, possibly because the
+                if index % 1000 == 0:
+                    # Fake percentage function
+                    _set_task_progress(round(((index / total_records * 85)) + 15))
         cache.clear()
     except:  # pragma: no cover
         app.logger.error(

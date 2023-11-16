@@ -1,7 +1,8 @@
-import datetime
+import datetime as dt
 import json
+import os
 
-from flask import flash, redirect, request, render_template, send_file, url_for
+from flask import after_this_request, flash, redirect, request, render_template, send_file, url_for
 from flask_login import login_required
 
 from app import db, cache
@@ -194,12 +195,16 @@ def export_aliases():
 
     filename = (
         "donation_whistle_alias_export_"
-        + datetime.datetime.now().strftime("%Y-%m-%d")
+        + dt.datetime.now().strftime("%Y-%m-%d")
         + ".json"
     )
     with open("app/" + filename, "w") as writer:
-        writer.write(export_data)
+        writer.write(export_data)    
 
+    @after_this_request
+    def remove_file(response):
+        os.remove("app/" + filename)
+        return response
     return send_file(filename, as_attachment=True, mimetype="json")
 
 

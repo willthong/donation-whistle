@@ -1,16 +1,15 @@
+import datetime as dt
+import dateutil.relativedelta as relativedelta
+import json
 import os
+import rq
 import sys
+import unittest
 
 # Move up a directory to import app
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
-
-from datetime import date, datetime
-from dateutil.relativedelta import relativedelta
-import json
-import rq
-import unittest
 
 from config import Config
 from flask import current_app
@@ -24,8 +23,9 @@ from app.models import (
     Donor,
     DonorType,
     DonationType,
+    Notification,
     Recipient,
-    Task
+    Task,
 )
 from app.models import load_user
 
@@ -39,6 +39,7 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     WTF_CSRF_ENABLED = False
     RAW_DATA_LOCATION = "tests/"
+
 
 class TestWebApp(unittest.TestCase):
     def populate_db(self):
@@ -74,18 +75,23 @@ class TestWebApp(unittest.TestCase):
 
     def test_login(self):
         response = self.client.post(
-            "/login", 
-            follow_redirects=True, 
-            data={"username": "barry", "password": "foobar"}
+            "/login",
+            follow_redirects=True,
+            data={"username": "barry", "password": "foobar"},
         )
-        assert '="alert alert-info" role="alert">Invalid username or password</div>' in response.text
+        assert (
+            '="alert alert-info" role="alert">Invalid username or password</div>'
+            in response.text
+        )
         response = self.client.post(
-            "/login", 
-            follow_redirects=True, 
-            data={"username": "bob", "password": "not_foobar"}
+            "/login",
+            follow_redirects=True,
+            data={"username": "bob", "password": "not_foobar"},
         )
-        assert '="alert alert-info" role="alert">Invalid username or password</div>' in response.text
-        
+        assert (
+            '="alert alert-info" role="alert">Invalid username or password</div>'
+            in response.text
+        )
 
     def test_home_page_redirect(self):
         response = self.client.get("/alias/create_new", follow_redirects=True)
@@ -164,17 +170,24 @@ class TestWebApp(unittest.TestCase):
             },
             follow_redirects=True,
         )
-        assert 'alert-info" role="alert">Only admins can create new users</div>' in response.text
+        assert (
+            'alert-info" role="alert">Only admins can create new users</div>'
+            in response.text
+        )
 
     def test_jobs(self):
         with self.client:
             self.login()
+            assert current_user.get_task_in_progress() == None
             assert current_user.launch_task().user == current_user
-        # Can't test _set_task_progress because "calling get_current_job() outside of the 
-        # context of a job function will return None.
-        # https://python-rq.org/docs/jobs/#accessing-the-current-job-from-within-the-job-function
+            # Can't test _set_task_progress because "calling get_current_job() outside of the
+            # context of a job function will return None.
+            # https://python-rq.org/docs/jobs/#accessing-the-current-job-from-within-the-job-function
+            assert current_user.get_tasks_in_progress()[0].user == current_user
             assert current_user.get_task_in_progress().user == current_user
-            assert isinstance(db.session.scalars(db.select(Task)).first().get_rq_job(), rq.job.Job)
+            assert isinstance(
+                db.session.scalars(db.select(Task)).first().get_rq_job(), rq.job.Job
+            )
             assert db.session.scalars(db.select(Task)).first().get_progress() == 100
 
     def test_relevancy_check(self):
@@ -230,7 +243,7 @@ VIRGINIA HOUSE
         )
         dereg_query = db.session.query(Recipient).filter_by(name="All For Unity")
         dereg_query = dereg_query.first().deregistered
-        assert dereg_query == date(2022, 5, 6)
+        assert dereg_query == dt.date(2022, 5, 6)
         assert (
             db.session.query(Donor).filter_by(name="KGL (Estates) Ltd").first()
             is not None
@@ -252,7 +265,7 @@ VIRGINIA HOUSE
         assert db_import.select_type_list(DonationType) == db_import.DONATION_TYPES
         assert db_import.select_type_list(DonorType) == db_import.DONOR_TYPES
         assert db_import.select_type_list("foobar") is None
-        
+
     def test_models(self):
         self.db_import()
         assert (
@@ -281,7 +294,7 @@ VIRGINIA HOUSE
             "alias_id": 1,
             "recipient": "Conservative and Unionist Party",
             "recipient_id": 1,
-            "date": date(2019, 12, 1),
+            "date": dt.date(2019, 12, 1),
             "type": "Cash",
             "amount": 10000.0,
             "legacy": False,
@@ -477,30 +490,34 @@ VIRGINIA HOUSE
     def test_import_aliases(self):
         self.db_import()
         self.client.post(
-            '/alias/new?selected_donors=["11","4"]', 
-            follow_redirects=True, 
-            data={"alias_name": "Unite the Union"}
+            '/alias/new?selected_donors=["11","4"]',
+            follow_redirects=True,
+            data={"alias_name": "Unite the Union"},
         )
 
         with self.assertRaises(Exception) as ctx:
             self.client.post(
                 "/alias/import",
-                follow_redirects=True, 
+                follow_redirects=True,
                 data={"json": open("tests/bad_json.json", "rb")},
             )
         assert "Error decoding JSON:" in str(ctx.exception)
 
         self.client.post(
             "/alias/import",
-            follow_redirects=True, 
+            follow_redirects=True,
             data={"json": open("tests/dummy_alias_export.json", "rb")},
         )
         assert (
-            db.session.scalars(db.select(DonorAlias).filter_by(id=31)).first().name == "Unite the Union"
-        ) 
+            db.session.scalars(db.select(DonorAlias).filter_by(id=31)).first().name
+            == "Unite the Union"
+        )
 
         request = self.client.get("/alias/import")
-        assert '<form action="" method="POST" enctype="multipart/form-data">' in request.text
+        assert (
+            '<form action="" method="POST" enctype="multipart/form-data">'
+            in request.text
+        )
         assert "downloading them as a JSON file or upload" in request.text
 
     def test_index_filters(self):
@@ -509,95 +526,124 @@ VIRGINIA HOUSE
             "/index",
             data={
                 "recipient_labour_party": "y",
-                "recipient_conservative_and_unionist_party" : "y",
-                "recipient_liberal_democrats" : "y",
-                "recipient_scottish_national_party_snp" : "y",
-                "recipient_green_party" : "n",
-                "recipient_reform_uk" : "y",
-                "recipient_other" : "y",
-                "donor_type_individual" : "n",
-                "donor_type_company" : "y",
-                "donor_type_trade_union" : "y",
-                "donor_type_unincorporated_association" : "y",
-                "donor_type_other" : "n",
-                "donor_type_limited_liability_partnership" : "y",
-                "donor_type_trust" : "y",
-                "donor_type_friendly_society" : "n",
-                "donation_type_cash" : "y",
-                "donation_type_non_cash" : "y",
-                "donation_type_visit" : "n",
-                "donation_type_other" : "y",
-                "is_legacy_true" : "y",
-                "is_legacy_false" : "n",
+                "recipient_conservative_and_unionist_party": "y",
+                "recipient_liberal_democrats": "y",
+                "recipient_scottish_national_party_snp": "y",
+                "recipient_green_party": "n",
+                "recipient_reform_uk": "y",
+                "recipient_other": "y",
+                "donor_type_individual": "n",
+                "donor_type_company": "y",
+                "donor_type_trade_union": "y",
+                "donor_type_unincorporated_association": "y",
+                "donor_type_other": "n",
+                "donor_type_limited_liability_partnership": "y",
+                "donor_type_trust": "y",
+                "donor_type_friendly_society": "n",
+                "donation_type_cash": "y",
+                "donation_type_non_cash": "y",
+                "donation_type_visit": "n",
+                "donation_type_other": "y",
+                "is_legacy_true": "y",
+                "is_legacy_false": "n",
                 "date_gt": "2005-03-02",
                 "date_lt": "2020-01-01",
             },
-            follow_redirects=True
+            follow_redirects=True,
         )
         assert (
-            '/api/data?filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_reform_uk&filter=recipient_other&filter=donor_type_company&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_limited_liability_partnership&filter=donor_type_trust&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_other&filter=is_legacy_true&filter=date_gt_2005-03-02&filter=date_lt_2020-01-01' 
+            "/api/data?filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_reform_uk&filter=recipient_other&filter=donor_type_company&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_limited_liability_partnership&filter=donor_type_trust&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_other&filter=is_legacy_true&filter=date_gt_2005-03-02&filter=date_lt_2020-01-01"
             in response.text
         )
 
-        query = (db.select(Donation))
-        query = main.apply_date_filters(query, ["date_gt_2019-11-28", "date_lt_2021-04-17"])
+        query = db.select(Donation)
+        query = main.apply_date_filters(
+            query, ["date_gt_2019-11-28", "date_lt_2021-04-17"]
+        )
         assert len(db.session.scalars(query).all()) == 11
 
-        query = (db.session.query(
-            DonorAlias.name,
-            Donor.donor_type_id,
-            db.func.sum(Donation.value).label("donations"),
-        )
-        .join(Donor.donor_alias)
-        .join(Donation)
-        .join(DonationType)
-        .group_by(DonorAlias.name)
-        .order_by(db.desc("donations"))
+        query = (
+            db.session.query(
+                DonorAlias.name,
+                Donor.donor_type_id,
+                db.func.sum(Donation.value).label("donations"),
+            )
+            .join(Donor.donor_alias)
+            .join(Donation)
+            .join(DonationType)
+            .group_by(DonorAlias.name)
+            .order_by(db.desc("donations"))
         )
 
         donor_type, relevant_types = main.assign_colours_to_donor_types(query, 1)
-        assert donor_type == ['slateblue', 'indigo', 'black', 'indigo', 'slateblue', 'slateblue', 'indigo', 'indigo', 'slateblue', 'slateblue', 'indigo', 'indigo', 'hotpink', 'hotpink', 'hotpink']
-        assert relevant_types == {'Company': 'slateblue', 'Individual': 'indigo', 'Other': 'black', 'Trade Union': 'hotpink'}
+        assert donor_type == [
+            "slateblue",
+            "indigo",
+            "black",
+            "indigo",
+            "slateblue",
+            "slateblue",
+            "indigo",
+            "indigo",
+            "slateblue",
+            "slateblue",
+            "indigo",
+            "indigo",
+            "hotpink",
+            "hotpink",
+            "hotpink",
+        ]
+        assert relevant_types == {
+            "Company": "slateblue",
+            "Individual": "indigo",
+            "Other": "black",
+            "Trade Union": "hotpink",
+        }
 
     def test_recipient_page(self):
         self.db_import()
-        response = self.client.get(
-            "/recipient/1",
-            follow_redirects=True
+        response = self.client.get("/recipient/1", follow_redirects=True)
+        assert (
+            '"marker":{"color":["slateblue","slateblue","slateblue","indigo","slateblue","slateblue"]},"showlegend":false,"x":["Simon J Collins & Associates Limited","Redsky Wholesalers Ltd","M & M Supplies (UK) PLC","Hugh Sloane","KGL (Estates) Ltd","Thompson Crosby & Co Ltd"],"y":[50000.0,13333.4,12498.0,10705.0,10000.0,8332.0],"type":"bar"}'
+            in response.text
         )
-        assert '"marker":{"color":["slateblue","slateblue","slateblue","indigo","slateblue","slateblue"]},"showlegend":false,"x":["Simon J Collins & Associates Limited","Redsky Wholesalers Ltd","M & M Supplies (UK) PLC","Hugh Sloane","KGL (Estates) Ltd","Thompson Crosby & Co Ltd"],"y":[50000.0,13333.4,12498.0,10705.0,10000.0,8332.0],"type":"bar"}' in response.text
-
 
     def test_assign_colours_to_parties(self):
-        assert main.assign_colours_to_parties("Conservative and Unionist Party") == "rgb(0, 135, 220)"
+        assert (
+            main.assign_colours_to_parties("Conservative and Unionist Party")
+            == "rgb(0, 135, 220)"
+        )
         assert main.assign_colours_to_parties("Not a Party") == "black"
-
 
     def test_donor_page(self):
         self.db_import()
-        response = self.client.get(
-            "/donor/1",
-            follow_redirects=True
-        )
-        assert '<h1>Donor detail: KGL (Estates) Ltd' in response.text
-
+        response = self.client.get("/donor/1", follow_redirects=True)
+        assert "<h1>Donor detail: KGL (Estates) Ltd" in response.text
 
     def test_donors_page(self):
         self.db_import()
         response = self.client.get("/donors", follow_redirects=True)
-        assert '<h1>All donors<br>' in response.text
-        assert '"indigo","indigo","slateblue","slateblue","indigo","indigo","slateblue","slateblue","indigo","indigo","hotpink","hotpink","hotpink"]},"showlegend":false,"x":["Simon J Collins & Associates Limited","Mr Geoff Roper","Miss Moira' in response.text
-        assert 'Union","Unite"],"y":[50000.0,25000.0,14928.53,13333.4,12498.0,10705.0,10000.0,10000.0,8332.0,8196.0,6895.0,6825.0,2500.0,1565.0],"type":"bar"},{"line":{"color":"rgba(0,0,0,0.0)"},"marker":{"color":"slateblue","size":80},"name":"Company","x":[null],"y":[null],"type":"scatter"},{"line":{"color":"rgba(0,0,0,0.0)"},"marker":{"color":"indigo","size":80},"name":"Individual","x":[null],"y":[null],"type":"scatter"},{"line":{"color":"rgba(0,0,0,0.0)"},"marker":{"color":"hotpink","size":80}' in response.text
+        assert "<h1>All donors<br>" in response.text
+        assert (
+            '"indigo","indigo","slateblue","slateblue","indigo","indigo","slateblue","slateblue","indigo","indigo","hotpink","hotpink","hotpink"]},"showlegend":false,"x":["Simon J Collins & Associates Limited","Mr Geoff Roper","Miss Moira'
+            in response.text
+        )
+        assert (
+            'Union","Unite"],"y":[50000.0,25000.0,14928.53,13333.4,12498.0,10705.0,10000.0,10000.0,8332.0,8196.0,6895.0,6825.0,2500.0,1565.0],"type":"bar"},{"line":{"color":"rgba(0,0,0,0.0)"},"marker":{"color":"slateblue","size":80},"name":"Company","x":[null],"y":[null],"type":"scatter"},{"line":{"color":"rgba(0,0,0,0.0)"},"marker":{"color":"indigo","size":80},"name":"Individual","x":[null],"y":[null],"type":"scatter"},{"line":{"color":"rgba(0,0,0,0.0)"},"marker":{"color":"hotpink","size":80}'
+            in response.text
+        )
 
     def test_update_party_sums(self):
         self.db_import()
         parties = {}
-        start_date = db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
+        start_date = (
+            db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
+        )
         end_date = db.session.query(db.func.max(Donation.date)).first()[0]
         date_series = []
         while start_date < end_date:
             date_series.append(start_date)
-            start_date += relativedelta(months=1)
+            start_date += relativedelta.relativedelta(months=1)
 
         for key in main.MAIN_PARTIES:
             parties[key] = [0 for i in range(0, len(date_series))]
@@ -618,14 +664,123 @@ VIRGINIA HOUSE
         )
 
         for record in party_stats_query:
-            date = datetime.strptime(record[1], "%Y-%m").date()
+            date = dt.datetime.strptime(record[1], "%Y-%m").date()
             index = date_series.index(date)
-            parties = main.update_party_sums(parties, index, record[0], round(record[2], 2))
-        assert parties == {'Conservative and Unionist Party': [50000.0, 54868.4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18617.96], 'Labour Party': [1565.0, 9325.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'Liberal Democrats': [25000.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'Reform UK': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'All other parties': [0, 30019.53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10000.0, 0, 0]}
+            parties = main.update_party_sums(
+                parties, index, record[0], round(record[2], 2)
+            )
+        assert parties == {
+            "Conservative and Unionist Party": [
+                50000.0,
+                54868.4,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                18617.96,
+            ],
+            "Labour Party": [
+                1565.0,
+                9325.0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            "Liberal Democrats": [
+                25000.0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            "Reform UK": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "All other parties": [
+                0,
+                30019.53,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                10000.0,
+                0,
+                0,
+            ],
+        }
 
         response = self.client.get("/recipients", follow_redirects=True)
-        assert '{"data":[{"customdata":["Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party"],"histfunc":"sum","hovertemplate":"' in response.text
-        assert 'marker":{"color":"rgb(0, 135, 220)"},"name":"Conservative Party","x":["2019-11-01","2019-12-01","2020-01-01","2020-02-01","2020-03-01","2020-04-01","2020-05-01","2020-06-01","2020-07-01","2020-08-01","2020-09-01","2020-10-01","2020-11-01","2020-12' in response.text
+        assert (
+            '{"data":[{"customdata":["Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party"],"histfunc":"sum","hovertemplate":"'
+            in response.text
+        )
+        assert (
+            'marker":{"color":"rgb(0, 135, 220)"},"name":"Conservative Party","x":["2019-11-01","2019-12-01","2020-01-01","2020-02-01","2020-03-01","2020-04-01","2020-05-01","2020-06-01","2020-07-01","2020-08-01","2020-09-01","2020-10-01","2020-11-01","2020-12'
+            in response.text
+        )
 
-
-
+    def test_notifications(self):
+        with self.client:
+            self.login()
+            response = self.client.get("/notifications")
+            assert response.text == "null\n"
+            current_user.add_notification(
+                "task_progress", {"task_id": 12345, "progress": 42}
+            )
+            response = self.client.get("/notifications")
+            assert (
+                '{"data":{"progress":42,"task_id":12345},"name":"task_progress","timestamp":'
+                in response.text
+            )
