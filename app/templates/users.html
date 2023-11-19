@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block head %}
+  {{ super() }}
+  <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+  </head>
+{% endblock %}
+
+{% block app_content %}
+  <h1>Users</h1>
+  <div id="table"></div>
+  <button type="button" class="btn btn-primary" onclick="window.location.href = '{{ url_for('main.register') }}'; return false;">Register a new user</button>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module">
+    import { Grid, html } from "https://unpkg.com/gridjs?module";
+    new Grid({
+      columns: [
+        {
+         id: 'id',
+         name: 'ID',
+        },
+        'Username',
+        'Email',
+        {
+          name: 'Admin?', 
+          formatter: function (cell) { 
+            if (cell == 'True') {return "✅"} else {return "❌"}
+          }
+        },
+        {
+          name: 'Running database import?', 
+          formatter: function (cell) { 
+            if (cell == "None") {return "❌"} else {return "✅"}
+          }
+        },
+        {
+          name: 'Delete', 
+          formatter: (_, row) => html(`<a href='users/delete/${row.cells[0].data}'>🗑️</a>`) 
+        },
+      ],
+      data:[ 
+        {% for user in users %}
+        [
+          '{{ user.id }}', 
+          '{{ user.username }}', 
+          '{{ user.email }}', 
+          '{{ user.is_admin }}', 
+          '{{ user.get_task_in_progress() }}',
+          ],
+        {% endfor %}
+      ],
+      sort: {
+        enabled: true,
+        multiColumn: true,
+      },
+      pagination: {
+        enabled: true,
+        limit: 100,
+      },
+      resizable: true,
+    }).render(document.getElementById('table'));
+
+  </script>
+
+{% endblock %}

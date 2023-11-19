@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: b06e21b87c7c
+Revision ID: 5616a2c3bcae
 Revises: 
-Create Date: 2023-10-31 19:18:41.045990
+Create Date: 2023-11-16 13:56:56.484752
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b06e21b87c7c'
+revision = '5616a2c3bcae'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -84,6 +84,26 @@ def upgrade():
     with op.batch_alter_table('donor', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_donor_name'), ['name'], unique=False)
 
+    op.create_table('notification',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=128), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.Float(), nullable=True),
+    sa.Column('payload_json', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('notification', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_notification_name'), ['name'], unique=False)
+        batch_op.create_index(batch_op.f('ix_notification_timestamp'), ['timestamp'], unique=False)
+
+    op.create_table('task',
+    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('complete', sa.Boolean(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('donation',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('donor_id', sa.Integer(), nullable=False),
@@ -114,6 +134,12 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_donation_date'))
 
     op.drop_table('donation')
+    op.drop_table('task')
+    with op.batch_alter_table('notification', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_notification_timestamp'))
+        batch_op.drop_index(batch_op.f('ix_notification_name'))
+
+    op.drop_table('notification')
     with op.batch_alter_table('donor', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_donor_name'))
 

@@ -49,6 +49,11 @@
               <li class="nav-item">
                 <a class="nav-link"  href="{{ url_for('db_import.dl_and_import') }}">Data import</a>
               </li>
+              {% if current_user.is_admin %}
+                <li class="nav-item">
+                  <a class="nav-link"  href="{{ url_for('main.users')}}">Users</a>
+                </li>
+              {% endif %}
               <li><a class="nav-link" href="{{ url_for('main.logout') }}">Log out</a></li>
             {% else %}
               <li><a class="nav-link" href="{{ url_for('main.login') }}">Log in</a></li>
@@ -87,25 +92,27 @@
     <link rel="manifest" href="/static/site.webmanifest">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"> </script>       
-    {% if current_user.is_authenticated%}
+    {% if current_user.is_authenticated %}
       <script>
         function set_task_progress(task_id, progress) {
-            $('#' + task_id + '-progress').text(progress);
+          $('#' + task_id + '-progress').text(progress);
         }
         $(function() {
-            var since = 0;
-            setInterval(function() {
-                $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
-                    function(notifications) {
-                      if (notifications.name == 'task_progress')
-                        set_task_progress(
-                          notifications.data.task_id,
-                          notifications.data.progress
-                        );
-                      since = notifications.timestamp;
-                    }
-                );
-            }, 1000);
+          var since = 0;
+          setInterval(function() {
+            $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
+              function(notifications) {
+                if (notifications && notifications.name == 'task_progress')
+                { 
+                  set_task_progress(
+                    notifications.data.task_id,
+                    notifications.data.progress
+                  );
+                  since = notifications.timestamp;
+                } 
+              }
+            );
+          }, 1000);
         });
       </script>
     {% endif %}

@@ -34,6 +34,9 @@ class RegistrationForm(FlaskForm):
         if user is not None:
             raise ValidationError("That email is taken. Please use a different one.")
 
+class DeleteUserForm(FlaskForm):
+    submit = SubmitField("Confirm user deletion")
+
 class FilterForm(FlaskForm):
     recipient_labour_party = BooleanField("Labour Party")
     recipient_conservative_and_unionist_party = BooleanField("Conservative Party")

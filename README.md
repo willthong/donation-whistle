@@ -15,19 +15,18 @@ This repository includes a working copy of the database. If anybody wants to try
 self-hosting Donation Whistle, this helps them hit the ground running. However, if you
 prefer to start from scratch:
 
-1. Delete `donation-whistle.db`
+1. Delete `donation-whistle.db` and the `migrations` directory
 2. Run `poetry shell` to make sure you're in the `poetry` virtual environment
-3. Run `flask db init` and `flask db migrate -m "Initial"` to create a new
+3. Run `flask db init`, `flask db migrate -m "Initial"` then `flask upgrade` to create a new
    `donation-whistle.db` file
-4. Perform an initial download of the Electoral Commission's data by going to the
-   homepage (by default <http://localhost:5000/index>) and choosing *Data import* on the
-   top bar
+4. Run Donation Whistle: `flask run`
+4. Go to the homepage (by default <http://localhost:5000/index>) and create the default
+   admin account by going to *Login* on the top bar
+5. Log in with the username `admin` and the default password `changethispassword`
+6. Perform an initial download of the Electoral Commission's data by choosing *Data
+   import* on the top bar; refresh the homepage to see the newly-imported records
 5. (Optionally) import an alias file, like the example provided in this repository, by
-   logging in and going to *Aliases* then *Import/export aliases*
-
-# TODO: create default admin account
-
-* Docker
+   going to *Aliases* then *Import/export aliases*
 
 ## Usage
 
@@ -51,12 +50,13 @@ flask run donation_scraper.py
 * [X] Allow exploration of data (graphical)
 * [X] Simple import UI
 * [X] Data export as CSV
-* [ ] Data import UI (including async import and progress bar)
+* [X] Data import UI (including async import and live progress)
 * [X] Alias import/export
-* [ ] Election view for the 12 months leading up to an election
 * [X] Add reported name to donor detail table
-* { } Write tests
+* [X] Write tests
+* [ ] Dockerized
 * [ ] Write and link to a blog post to explain why this project exists
+* [ ] Election view for the 12 months leading up to an election
 
 ## Contributing
 

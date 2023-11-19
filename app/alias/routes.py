@@ -236,4 +236,4 @@ def import_aliases():
         cache.clear()
         return redirect(url_for("alias.aliases"))
 
-    return render_template("alias_port.html", form=form)
+    return render_template("alias_port.html", title="Import/export aliases", form=form)

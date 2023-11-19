@@ -23,7 +23,6 @@ from app.models import (
     Donor,
     DonorType,
     DonationType,
-    Notification,
     Recipient,
     Task,
 )
@@ -92,6 +91,9 @@ class TestWebApp(unittest.TestCase):
             '="alert alert-info" role="alert">Invalid username or password</div>'
             in response.text
         )
+        self.login()
+        response = self.client.get("/login", follow_redirects=False)
+        assert response.location == "/index"
 
     def test_home_page_redirect(self):
         response = self.client.get("/alias/create_new", follow_redirects=True)
@@ -140,6 +142,29 @@ class TestWebApp(unittest.TestCase):
 
     def test_register_user(self):
         self.login()
+        response = self.client.post("/users/delete/1", follow_redirects=True)
+        assert '-info" role="alert">You are the last admin, so you can' in response.text
+        response = self.client.post(
+            "/register",
+            data={
+                "username": "admin2",
+                "email": "bobthesecond@mailinator.com",
+                "is_admin": True,
+                "password": "adminpassword",
+                "repeat_password": "adminpassword",
+            },
+            follow_redirects=True,
+        )
+        response = self.client.get("/users/delete/1", follow_redirects=True)
+        assert "This will log you out, as this user is you." in response.text
+        admin2 = db.session.execute(
+            db.select(User).where(User.username == "admin2")
+        ).all()
+        response = self.client.post("/users/delete/2", follow_redirects=True)
+        admin2 = db.session.execute(
+            db.select(User).where(User.username == "admin2")
+        ).all()
+        assert admin2 == []
         response = self.client.post(
             "/register",
             data={
@@ -151,29 +176,35 @@ class TestWebApp(unittest.TestCase):
             follow_redirects=True,
         )
         assert response.status_code == 200
-        assert response.request.path == "/index"
+        assert response.request.path == "/users"
         self.logout()
         response = self.client.post(
             "/login",
             data={"username": "alice", "password": "spamandeggs"},
             follow_redirects=True,
+            # Not an admin
         )
         assert response.status_code == 200
         assert '<a class="nav-link" href="/logout">Log out</a>' in response.text
-        response = self.client.post(
-            "/register",
-            data={
-                "username": "shouldnotwork",
-                "email": "shouldnotwork@mailinator.com",
-                "password": "validpassword",
-                "repeat_password": "validpassword",
-            },
-            follow_redirects=True,
+        response = self.client.get("/register", follow_redirects=True)
+        assert '-info" role="alert">Only admins can create new users' in response.text
+        response = self.client.get("/users", follow_redirects=True)
+        assert '-info" role="alert">Only admins can access the user' in response.text
+        response = self.client.get("/users/delete/1", follow_redirects=True)
+        assert '-info" role="alert">Only admins can delete' in response.text
+
+    def test_check_last_admin(self):
+        with self.client:
+            self.login()
+            assert current_user.check_last_admin()
+
+    def test_create_default_admin(self):
+        db.session.delete(
+            db.session.scalars(db.select(User).where(User.username == "bob")).one()
         )
-        assert (
-            'alert-info" role="alert">Only admins can create new users</div>'
-            in response.text
-        )
+        db.session.commit()
+        response = self.client.get("/login", follow_redirects=True)
+        assert 'alert alert-info" role="alert">Default admin user reg' in response.text
 
     def test_jobs(self):
         with self.client:

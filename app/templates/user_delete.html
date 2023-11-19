@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h1>Confirm delete user: {{ user.username }}</h1>
+  <p>Are you sure you want to delete this user?
+  {% if current_user.id == user.id %}
+    This will log you out, as this user is you.
+  {% endif %}
+  <p>
+  <div class="row">
+    <div class="col-md-4">
+      <form action="" method="POST">
+        {{ form.csrf_token }}
+        <p> {{ form.submit() }} </p>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

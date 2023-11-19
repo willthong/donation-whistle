@@ -26,6 +26,7 @@ from app.models import (
 from app.main.forms import (
     LoginForm,
     RegistrationForm,
+    DeleteUserForm,
     FilterForm,
 )
 from app.main import bp
@@ -754,9 +755,21 @@ def donors():
     )
 
 
+def create_default_admin():
+    user = User(username = "admin", email="admin@mailinator.com", is_admin=True)
+    user.set_password("changethispassword")
+    db.session.add(user)
+    db.session.commit()
+    flash("Default admin user registered!")
+    
+
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    # Default admin
+    if not db.session.execute(db.select(User)).scalars().first():
+        create_default_admin()
     if current_user.is_authenticated:
+        flash("Already logged in!")
         return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
@@ -799,9 +812,42 @@ def register():
         db.session.add(user)
         db.session.commit()
         flash("New user registered!")
-        # TODO: change this to the admin's users panel
-        return redirect(url_for("main.login"))
+        return redirect(url_for("main.users"))
     return render_template("register.html", title="Register", form=form)
+
+@bp.route("/users", methods=["GET"])
+@login_required
+def users():
+    if current_user.is_authenticated and not current_user.is_admin:
+        flash("Only admins can access the user list")
+        return redirect(url_for("main.index"))
+    query = db.select(User).order_by(User.id)
+    users = db.session.scalars(query).all()
+    return render_template(
+        "users.html",
+        title="Users",
+        users=users,
+    )
+
+
+@bp.route("/users/delete/<id>", methods=["GET", "POST"])
+@login_required
+def delete_user(id):
+    if current_user.is_authenticated and not current_user.is_admin:
+        flash("Only admins can delete other users")
+        return redirect(url_for("main.index"))
+    if current_user.check_last_admin():
+        flash("You are the last admin, so you can't delete your own account")
+        return redirect(url_for("main.users"))
+    user = db.get_or_404(User, id)
+    title = f"Delete user: {user.username}?"
+    form = DeleteUserForm()
+    if form.validate_on_submit():
+        db.session.execute(db.delete(User).where(User.id == user.id))
+        db.session.commit()
+        flash(f"User {user.username} deleted!")
+        return redirect(url_for("main.users"))
+    return render_template("user_delete.html", title=title, user=user, form=form)
 
 
 @bp.route("/export", methods=["GET"])

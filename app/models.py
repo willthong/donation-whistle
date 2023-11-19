@@ -176,6 +176,10 @@ class User(UserMixin, db.Model):
         db.session.commit()
         return 
 
+    def check_last_admin(self):
+        query = db.session.execute(db.select(User).where(User.is_admin == True))
+        return True if len(query.all()) == 1 else False
+
 @login.user_loader
 def load_user(id):
     return db.session.query(User).filter_by(id=id).first()
