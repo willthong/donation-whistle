@@ -2,28 +2,29 @@
 
 {% block app_content %}
   <h1>Confirm new alias creation?</h1>
-  <p>
-    TODO: alternative method of naming by dropdown
-  </p>
   <div class="row">
-    <div class="col-md-4">
       <form action="" method="POST">
         {{ form.csrf_token }}
-          <p>
-            {{ form.alias_name.label }} {{form.alias_name(size=20) }}
-            {% for error in form.alias_name.errors %}
-              <span style="color: red; font-style: italic">{{ error }}</span>
-            {% endfor %}
+        <p>
+          {{ form.alias_name.label }} {{form.alias_name(size=20) }}
+          {% for error in form.alias_name.errors %}
+            <span style="color: red; font-style: italic">{{ error }}</span>
+          {% endfor %}
+        </p>
+        <p>
+          You can also click any of the the donors' names below to choose their names
+          for the alias.
+        </p>
+
         </p>
         <p>
             {{ form.note.label }} {{ form.note(size=20) }}
         </p>
         <p> {{ form.submit() }}
       </form>
-    </div>
   </div>
   {% for donor in selected_donors %}
-    <h2> {{ donor.name }} </h2>
+    <h2>{{ donor.name }}</h2>
     <table class="table">
       <thead>
         <th >Recipient</th>
@@ -41,3 +42,19 @@
   {% endfor %}
 {% endblock %}
 
+{% block scripts %}
+  <script>
+    var nameField = document.getElementById('alias_name');
+    var allH2 = document.querySelectorAll("h2");
+
+    function replaceNameField(text) {
+      console.log(text)
+      nameField.value = text;
+    }
+
+    for (var heading of allH2) {
+      $(heading).wrap('<a href="#" onclick="replaceNameField(\'' + heading.textContent + '\')">');
+    }
+    
+  </script>
+{% endblock %}

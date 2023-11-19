@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from app import db, cache
 from app.alias import bp
-from app.alias.forms import DeleteAlias, NewAliasName, JSONForm
+from app.alias.forms import DeleteAlias, NewAliasName, UpdateAlias, JSONForm
 from app.models import Donor, DonorAlias
 
 
@@ -108,20 +108,22 @@ def new_alias():
 def alias(id):
     alias = db.get_or_404(DonorAlias, id)
     title = f"Alias detail: {alias.name}"
-    form = NewAliasName()
+    form = UpdateAlias()
     if form.validate_on_submit():  # pragma: no cover
         query = db.select(DonorAlias).filter_by(name=form.alias_name.data)
         dupe_alias = db.session.execute(query).scalars().first()
         if dupe_alias and form.alias_name.data not in [d.name for d in alias.donors]:
-            # Only add a new alias if donors includes a donor with the proposed name, otherwise
-            # it'll be orphaning a different donor.
+            # Only add a new alias if donors includes a donor with the proposed name,
+            # otherwise it'll be orphaning a different donor.
             flash("That alias name is already taken.")
             return redirect(url_for("alias.aliases", id=id))
-        alias.name = form.alias_name.data or None
-        alias.note = form.note.data or None
+        alias.name = form.alias_name.data or alias.name or None
+        alias.note = form.note.data or alias.note or None
         db.session.commit()
         flash("Alias updated!")
-        # TODO this should probably actually show the note...
+    elif request.method == "GET": # pragma: no cover
+        form.alias_name.data = alias.name
+        form.note.data = alias.note
     return render_template("alias_detail.html", title=title, alias=alias, form=form)
 
 

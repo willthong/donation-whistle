@@ -453,18 +453,23 @@ VIRGINIA HOUSE
             follow_redirects=True,
         )
         assert "<h1>Confirm new alias creation?</h1>" in response.text
-        assert "<h2> Unite the Union </h2>" in response.text
+        assert "<h2>Unite the Union</h2>" in response.text
 
         response = self.client.post(
             '/alias/new?selected_donors=["11","4","14"]',
             follow_redirects=True,
-            data={"alias_name": "Unite the Union"},
+            data={
+                "alias_name": "Unite the Union",
+                "note": "Did you hear that? They've shut down the main reactor.",
+            },
         )
         assert (
             """<a href="/alias/16">Unite the Union</a>,
           which refers to:</li>"""
             in response.text
         )
+        response = self.client.get("/alias/16")
+        assert "Did you hear that? They&#39;ve shut down the main" in response.text
 
         response = self.client.post(
             '/alias/new?selected_donors=["3","5"]',

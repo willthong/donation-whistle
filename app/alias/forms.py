@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileRequired
-from wtforms import FileField, StringField, SubmitField
+from wtforms import FileField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, ValidationError
 
 # File size validator
@@ -17,7 +17,12 @@ def FileSizeLimit(max_size_in_mb): #pragma: no cover
 
 class NewAliasName(FlaskForm):
     alias_name = StringField("New alias name", validators=[DataRequired()])
-    note = StringField("Notes")
+    note = TextAreaField("Notes")
+    submit = SubmitField("Save alias")
+    
+class UpdateAlias(FlaskForm):
+    alias_name = StringField("New alias name")
+    note = TextAreaField("Notes")
     submit = SubmitField("Save alias")
     
 class DeleteAlias(FlaskForm):
