@@ -478,7 +478,7 @@ VIRGINIA HOUSE
         )
         assert 'info" role="alert">That alias name is already taken.' in response.text
 
-        # Add alias (#TODO when built; you'd just take 14 from above and put it here)
+        # Add alias (TODO when built; you'd just take 14 from above and put it here)
         # response = self.client.post(
         #     '/alias/new?selected_donors=["14","16"]',
         #     follow_redirects=True,

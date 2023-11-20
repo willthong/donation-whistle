@@ -258,6 +258,9 @@ def recipient(id):
             },
             "hovermode": "closest",
             "font_family": "'Helvetica Neue', 'Open Sans', Arial",
+            "font_color": "rgba(255,255,255,255)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
         },
     )
 
@@ -316,6 +319,9 @@ def recipient(id):
                 "type": "linear",
             },
             "font_family": "'Helvetica Neue', 'Open Sans', Arial",
+            "font_color": "rgba(255,255,255,255)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
         },
     )
     donation_sources_graph.update_yaxes(
@@ -421,6 +427,9 @@ def donor(id):
                 "type": "linear",
             },
             "font_family": "'Helvetica Neue', 'Open Sans', Arial",
+            "font_color": "rgba(255,255,255,255)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
         },
     )
 
@@ -603,7 +612,7 @@ def recipients():
                 x=date_series,
                 y=parties["All other parties"],
                 xbins={"start": dt.datetime(2001, 1, 1), "size": "M12"},
-                marker_color="rgb(97, 224, 0)",
+                marker_color="rgb(62, 143, 0)",
                 histfunc="sum",
                 hovertemplate="£%{y:.4s}<extra>%{customdata}</extra>",
                 visible="legendonly",
@@ -627,12 +636,15 @@ def recipients():
             ],
             "legend": {
                 "x": 0.01,
-                "y": 0.99,
-                "bgcolor": "rgba(255,255,255,0)",
-                "bordercolor": "rgba(255,255,255,0)",
+                "y": 1.01,
+                "bgcolor": "rgba(0,0,0,0)",
+                "bordercolor": "rgba(0,0,0,0)",
             },
             "hovermode": "x",
             "font_family": "'Helvetica Neue', 'Open Sans', Arial",
+            "font_color": "rgba(255,255,255,255)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
         },
     )
     figure.update_xaxes(
@@ -732,6 +744,9 @@ def donors():
             },
             "hovermode": "closest",
             "font_family": "'Helvetica Neue', 'Open Sans', Arial",
+            "font_color": "rgba(255,255,255,255)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
         },
     )
 

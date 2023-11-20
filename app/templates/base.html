@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-  <html>
-      <head>
-        <title>
-          {{ title }} - Donation Whistle
-        </title>
-        <!-- Favicons -->
-        <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-        <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
-        <link href="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<html data-bs-theme="dark">
+  <head>
+    {% block head %}
+      <title> {{ title }} - Donation Whistle </title>
+      <!-- Favicons -->
+      <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+      <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+      <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+      <link rel="preload" href="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js">
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+      <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
       <style>
         [data-column-id="amount"] {
             text-align: right;
@@ -18,104 +18,145 @@
         [data-column-id="legacy"] {
             text-align: center;
           }
-        .gridjs-th-content {
+        th.gridjs-th {
+          background-color: #424242;
+          border: 0px;
+          color: var(--bs-body-color);
+        }
+        .gridjs-td-content {
           text-align: left;
+          color: var(--bs-body-color);
         }
         .filter-box {
           margin-bottom: 3px;
         }
+        .gridjs-tr td {
+          color: var(--bs-body-color);
+          border-left: 0px;
+          border-right: 0px;
+          border-top: 0px;
+          border-bottom: 0px;
+        }
+        .gridjs-tr:nth-child(odd) td {
+          background: #2d2e2f;
+        }
+        .gridjs-tr:nth-child(even) td {
+          background: #424242;
+        }
+        .gridjs-footer {
+          background-color: #2d2e2f;
+        }
+        .gridjs-pagination {
+          color: var(--bs-body-color);
+        }
+        .gridjs-pagination .gridjs-pages button {
+          background-color:#424242;
+        }
+        .gridjs-pagination .gridjs-pages button.gridjs-spread {
+          background-color:#424242;
+        }
+        .gridjs-pagination .gridjs-pages button.gridjs-currentPage {
+          background-color: #2d2e2f;
+        }
+        .gridjs-pagination .gridjs-pages button:disabled {
+          background-color:#424242;
+        }
+        input.gridjs-input {
+          background-color: #424242;
+          color: var(--bs-body-color);
+        }
       </style>
-    {% block head %}
     {% endblock %}
+  </head>
 
-  {% block navbar %}
-  <div class="container">
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}"> Donation Whistle </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNavDropdown">
-          <ul class="navbar-nav">
+{% block navbar %}
+<div class="container">
+  <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{{ url_for('main.index') }}"> Donation Whistle </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.recipients') }}">Recipients</a>
+          </li>
+          <a class="nav-link" href="{{ url_for('main.donors') }}">Donors</a>
+          {% if current_user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.recipients') }}">Recipients</a>
+              <a class="nav-link"  href="{{ url_for('alias.aliases') }}">Aliases</a>
             </li>
-            <a class="nav-link" href="{{ url_for('main.donors') }}">Donors</a>
-            {% if current_user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link"  href="{{ url_for('db_import.dl_and_import') }}">Data import</a>
+            </li>
+            {% if current_user.is_admin %}
               <li class="nav-item">
-                <a class="nav-link"  href="{{ url_for('alias.aliases') }}">Aliases</a>
+                <a class="nav-link"  href="{{ url_for('main.users')}}">Users</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link"  href="{{ url_for('db_import.dl_and_import') }}">Data import</a>
-              </li>
-              {% if current_user.is_admin %}
-                <li class="nav-item">
-                  <a class="nav-link"  href="{{ url_for('main.users')}}">Users</a>
-                </li>
-              {% endif %}
-              <li><a class="nav-link" href="{{ url_for('main.logout') }}">Log out</a></li>
-            {% else %}
-              <li><a class="nav-link" href="{{ url_for('main.login') }}">Log in</a></li>
             {% endif %}
-          </ul>
-        </div>
+            <li><a class="nav-link" href="{{ url_for('main.logout') }}">Log out</a></li>
+          {% else %}
+            <li><a class="nav-link" href="{{ url_for('main.login') }}">Log in</a></li>
+          {% endif %}
+        </ul>
       </div>
-    </nav>
-  {% endblock %}
+    </div>
+  </nav>
+{% endblock %}
 
-    {% if current_user.is_authenticated %}
-      {% with tasks = current_user.get_tasks_in_progress() %}
-        {% if tasks %}
-          {% for task in tasks %}
-            <div class="alert alert-success" role="alert">
-              {{ task.description }}
-              Database import in progress: <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-    {% endif %}
-
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-info" role="alert">{{ message }}</div>
+  {% if current_user.is_authenticated %}
+    {% with tasks = current_user.get_tasks_in_progress() %}
+      {% if tasks %}
+        {% for task in tasks %}
+          <div class="alert alert-success" role="alert">
+            {{ task.description }}
+            Database import in progress: <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
+          </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
+  {% endif %}
 
-  {% block app_content %}
-  {% endblock %}
-  </div>
-
-    <link rel="manifest" href="/static/site.webmanifest">
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"> </script>       
-    {% if current_user.is_authenticated %}
-      <script>
-        function set_task_progress(task_id, progress) {
-          $('#' + task_id + '-progress').text(progress);
-        }
-        $(function() {
-          var since = 0;
-          setInterval(function() {
-            $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
-              function(notifications) {
-                if (notifications && notifications.name == 'task_progress')
-                { 
-                  set_task_progress(
-                    notifications.data.task_id,
-                    notifications.data.progress
-                  );
-                  since = notifications.timestamp;
-                } 
-              }
-            );
-          }, 1000);
-        });
-      </script>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-info" role="alert">{{ message }}</div>
+      {% endfor %}
     {% endif %}
-  {% block scripts %}
-  {% endblock %}
+  {% endwith %}
+
+{% block app_content %}
+{% endblock %}
+</div>
+
+  <link rel="manifest" href="/static/site.webmanifest">
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"> </script>       
+  {% if current_user.is_authenticated %}
+    <script>
+      function set_task_progress(task_id, progress) {
+        $('#' + task_id + '-progress').text(progress);
+      }
+      $(function() {
+        var since = 0;
+        setInterval(function() {
+          $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
+            function(notifications) {
+              if (notifications && notifications.name == 'task_progress')
+              { 
+                set_task_progress(
+                  notifications.data.task_id,
+                  notifications.data.progress
+                );
+                since = notifications.timestamp;
+              } 
+            }
+          );
+        }, 1000);
+      });
+    </script>
+  {% endif %}
+{% block scripts %}
+{% endblock %}
 </html>
