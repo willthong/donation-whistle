@@ -54,7 +54,7 @@ DONOR_TYPE_COLOURS = {
     "Company": "slateblue",
     "Limited Liability Partnership": "seagreen",
     "Trade Union": "hotpink",
-    "Unincorporated Association": "yellow",
+    "Unincorporated Association": "darkkhaki",
     "Other": "black",
 }
 
@@ -241,6 +241,7 @@ def recipient(id):
                 hovertemplate="£%{y:.4s}"
                 "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
                 marker_color=donor_type,
+                marker_line={"width":0},
                 showlegend=False,
             ),
         ],
@@ -307,6 +308,7 @@ def recipient(id):
                 hovertemplate="£%{x:.4s}<extra></extra>",
                 orientation="h",
                 marker_color=donor_type,
+                marker_line={"width":0},
             ),
         ],
         layout={
@@ -411,6 +413,7 @@ def donor(id):
                 y=parties[i],
                 hovertemplate="£%{y:.4s}",
                 marker_color=party_colour,
+                marker_line={"width":0},
             )
         )
 
@@ -727,6 +730,7 @@ def donors():
                 hovertemplate="£%{y:.4s}"
                 "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
                 marker_color=donor_type,
+                marker_line={"width":0},
                 showlegend=False,
             ),
         ],
@@ -757,7 +761,7 @@ def donors():
                 y=[None],
                 name=donor_type,
                 marker_color=colour,
-                line={"color": "rgba(0,0,0,0.0)"},
+                line={"color": "rgba(0,0,0,0)"},
                 marker={"size": 80},
             ),
         )

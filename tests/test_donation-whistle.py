@@ -476,7 +476,7 @@ VIRGINIA HOUSE
             follow_redirects=True,
             data={"alias_name": "Unite the Union"},
         )
-        assert 'info" role="alert">That alias name is already taken.' in response.text
+        assert 'info" role="alert">That alias name is already taken' in response.text
 
         # Add alias (TODO when built; you'd just take 14 from above and put it here)
         # response = self.client.post(

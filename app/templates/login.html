@@ -1,28 +1,30 @@
 {% extends "base.html" %}
 
 {% block app_content %}
-  <h1>Sign in</h1>
   <div class="row">
+    <div class="col"></div>
     <div class="col-md-4">
-      <form action = "" method="POST">
+      <h1>Sign in</h1>
+      <form action="" method="POST">
         {{ form.csrf_token }}
-        <p>
-          {{ form.username.label }} {{ form.username(size=20) }}
-          {% for error in form.username.errors %}
-            <span style="color: red; font-style: italic">{{ error }}</span>
-          {% endfor %}
-        </p>
-        <p>
-          {{ form.password.label }} {{ form.password(size=20) }}
-          {% for error in form.password.errors %}
-            <span style="color: red; font-style: italic">{{ error }}</span>
-          {% endfor %}
-        </p>
-        <p>
-          {{ form.remember_me.label }} {{ form.remember_me() }}
-        </p>
-        <p> {{ form.submit() }}
+        <div class="form-floating">
+          {{ form.username(class_="form-control", placeholder_="") }}
+          <label for="floatingInput">{{ form.username.label }}</label>
+        </div>
+        <div class="form-floating">
+          {{ form.password(class_="form-control", placeholder_="") }}
+          <label for="floatingInput">{{ form.password.label }}</label>
+        </div>
+        <div class="form-check text-start my-3">
+          {{ form.remember_me(class_="form-check-input", type_="checkbox", value_="remember-me", id_="flexCheckDefault") }}
+          <label class="form-check-label" for="flexCheckDefault">
+            {{ form.remember_me.label }}
+          </label>
+        </div>
+        {{ form.submit(class_="btn btn-primary w-100 py-2", type_="submit") }}
       </form>
     </div>
+    <div class="col"></div>
   </div>
+
 {% endblock %}

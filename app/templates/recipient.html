@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <head>
+  {{ super() }}
     <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
-  </head>
 {% endblock %}
 
 {% block app_content %}
@@ -19,16 +18,31 @@
 
 
   <div class="row">
-    <div class="col-3">
+    <div class="col-md-2">
       <button type="button" class="btn btn-secondary" onclick="seeAllGifts()">See
         all gifts</button>
     </div>
-    <div class="col-3">
+    <div class="col-md">
       <form action="/recipient/{{ recipient.id }}" method="POST"> {{ form.csrf_token }}
         <strong>Dates</strong><br>
-        {{ form.date_gt.label }}: {{ form.date_gt(size=20) }} <br>
-      {{ form.date_lt.label }}: {{ form.date_lt(size=20) }} <br><br>
-      <button type="submit" class="btn btn-primary" >Apply filters</button> 
+        <div class="row">
+          <div class="col-md-1">
+            {{ form.date_gt.label }} 
+          </div>
+          <div class="col-md">
+            {{ form.date_gt }}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-1">
+            {{ form.date_lt.label }} 
+          </div>
+          <div class="col-md">
+            {{ form.date_lt }}
+          </div>
+        </div>
+        <br>
+      <button type="submit" class="btn btn-primary" >Apply date filter</button> 
       </form>
     </div>
 

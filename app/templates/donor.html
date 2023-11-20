@@ -7,8 +7,7 @@
 
 {% block app_content %}
 
-  <h1>Donor detail: {{ alias.name }}<br>
-  </h1>
+  <h1>Donor detail: {{ alias.name }}<br></h1>
 
   {% if alias.donors|length > 1 %}<p>
     This donor is known by several names: 
@@ -20,10 +19,8 @@
     </p>
     <p>
     {% if current_user.is_authenticated %}
-      <a href="{{ url_for('alias.alias', id=alias.id) }}">
-        <button type="button" class="btn btn-primary">
-          Edit this alias
-        </button>
+      <a href="{{ url_for('alias.alias', id=alias.id) }}" class="btn btn-primary">
+        Edit this alias
       </a>
     {% else %}
       Only administrators are permitted to edit these aliases. If you are one, you can
@@ -85,7 +82,7 @@
         { id: 'recipient', 
           sort: false,
           name: 'Recipient', 
-          formatter: (_, row) => recipientFormatter(row.cells[0].data, row.cells[5].data) 
+          formatter: (_, row) => recipientFormatter(row.cells[0].data, row.cells[6].data) 
         },
         { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
         { id: 'type', name: 'Donation Type', sort: false, },

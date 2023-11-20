@@ -2,26 +2,30 @@
 
 {% block app_content %}
   <h1>Confirm new alias creation?</h1>
-  <div class="row">
-      <form action="" method="POST">
-        {{ form.csrf_token }}
-        <p>
-          {{ form.alias_name.label }} {{form.alias_name(size=20) }}
-          {% for error in form.alias_name.errors %}
-            <span style="color: red; font-style: italic">{{ error }}</span>
-          {% endfor %}
-        </p>
-        <p>
-          You can also click any of the the donors' names below to choose their names
-          for the alias.
-        </p>
-
-        </p>
-        <p>
-            {{ form.note.label }} {{ form.note(size=20) }}
-        </p>
-        <p> {{ form.submit() }}
-      </form>
+  <form action="" method="POST">
+    {{ form.csrf_token }}
+    <div class="row">
+      <div class="col-sm-2">
+        {{ form.alias_name.label(class_="col-form-label") }}
+      </div>
+      <div class="col-sm-5">
+        {{form.alias_name(class_="form-control") }}
+      </div>
+      <div class="col-sm-5">
+        <span id="aliasNameHelpInline" class="form-text">
+          You can also click the the donors' names below use their names
+        </span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-2">
+        {{ form.note.label(class_="col-form-label") }}
+      </div>
+      <div class="col-sm-10">
+        {{form.note(class_="form-control") }}
+    </div>
+    <p> {{ form.submit(class_="btn btn-primary") }} </p>
+  </form>
   </div>
   {% for donor in selected_donors %}
     <h2>{{ donor.name }}</h2>

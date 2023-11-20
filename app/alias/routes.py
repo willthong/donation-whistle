@@ -79,7 +79,7 @@ def new_alias():
         ):
             # Only add a new alias if donors includes a donor with the proposed name, otherwise
             # it'll be orphaning a different donor.
-            flash("That alias name is already taken.")
+            flash("That alias name is already taken")
             return redirect(
                 url_for(
                     "alias.new_alias",

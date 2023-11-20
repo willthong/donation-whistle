@@ -2,33 +2,32 @@
 {% extends "base.html" %}
 
 {% block app_content %}
-
   <h1>Alias detail: {{ alias.name }}</h1>
-
-  <div class="row">
-    <div class="col-md-4">
-      <form action="" method="POST">
-        {{ form.csrf_token }}
-          <p>
-            {{ form.alias_name.label }} {{form.alias_name(size=20) }}
-            {% for error in form.alias_name.errors %}
-              <span style="color: red; font-style: italic">{{ error }}</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.note.label }} {{ form.note(size=20) }}
-        </p>
-        <p> {{ form.submit() }}
-      </form>
+  <form action="" method="POST">
+    {{ form.csrf_token }}
+    <div class="row">
+      <div class="col-sm-2">
+        {{ form.alias_name.label(class_="col-form-label") }} 
+      </div>
+      <div class="col-sm">
+        {{form.alias_name(class_="form-control") }}
+      </div>
     </div>
-  </div>
-
-  <a href="{{ url_for('alias.delete_alias', id=alias.id) }}">
-    <button type="button" class="btn btn-primary" >
+    <div class="row">
+      <div class="col-sm-2">
+        {{ form.note.label(class_="col-form-label") }}
+      </div>
+      <div class="col-sm">
+        {{form.note(class_="form-control") }}
+      </div>
+    </div>
+    <br>
+    {{ form.submit(class_="btn btn-primary") }} 
+    <a href="{{ url_for('alias.delete_alias', id=alias.id)}}" class="btn btn-primary">
       Delete alias
-    </button>
-  </a>
-  <br><br>
+    </a>
+  </form>
+  <br>
   <p>
     This alias applies to:
   </p>

@@ -5,34 +5,26 @@
   <h1>Import/export aliases</h1>
 
   <div class="row">
+      <p>
+        Here, you can either download the aliases in the database as a JSON file 
+        or upload a previously exported JSON file. When uploading, each donor's name
+        is used to find the relevant alias.
+      </p>
       <form action="" method="POST" enctype="multipart/form-data">
         {{ form.csrf_token }}
-          <p>
-            Using the buttons below, you can either export all the aliases in the
-            database by downloading them as a JSON file or upload a previously exported
-            JSON file.
-          </p>
-          <p>
-            Each donor's name is used to find the appropriate alias.
-          </p>
-
-          <p>
+            {{ form.json(class_="form-control", type_="file") }}
             {% for error in form.errors %}
               <span style="color: red; font-style: italic">{{ error }}</span>
+              <br>
             {% endfor %}
-            {{ form.json }}
-            <br><br>
-            <a href="{{ url_for('alias.import_aliases') }}">
-              <button type="submit" class="btn btn-primary">
-                Import (overwrites all existing aliases!)
-              </button>
-            </a>
-            <a href="{{ url_for('alias.export_aliases') }}">
-              <button type="button" class="btn btn-primary">
-                Export as JSON
-              </button>
-            </a>
-        </p>
+
+            <br>
+            <button type="submit" class="btn btn-primary">
+              Import (overwrites all existing aliases!)
+            </button>
+      <a href="{{ url_for('alias.export_aliases') }}" class="btn btn-primary">
+        Export as JSON
+      </a>
       </form>
   </div>
 

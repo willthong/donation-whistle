@@ -16,7 +16,7 @@
   </p>
   
   <form action="/aliases" method="post" id="aliasForm">
-    <button type="button" class="btn btn-inactive" id="submitButton">
+    <button type="button" class="btn btn-outline" disabled id="submitButton">
       <span id="submitLabel">
         Select multiple donors to apply an alias
       </span>
@@ -25,6 +25,7 @@
       Clear selections
     </button>
   </form>
+  <br>
 
  <input class="form-control" type="text" id="filterBox" onkeyup="filterDonors()" placeholder="Filter donors...">
 
@@ -107,13 +108,15 @@
       // Update save button
       if (selectedCount > 1) {
         submitLabel.textContent = `Save alias for ${selectedCount} donors`;
-        submitButton.classList.remove('btn-inactive');
+        submitButton.classList.remove('btn-outline');
         submitButton.classList.add('btn-primary');
+        submitButton.removeAttribute('disabled');
       }
       else if (selectedCount <= 1) {
         submitLabel.textContent = "Select multiple donors to apply an alias";
         submitButton.classList.remove('btn-primary');
-        submitButton.classList.add('btn-inactive');
+        submitButton.classList.add('btn-outline');
+        submitButton.setAttribute('disabled', '');
       }
     }
 
