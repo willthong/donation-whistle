@@ -9,33 +9,22 @@ Electoral Commission makes this important public data available: that it does no
 consolidate aliases, and that it double-reports donations. Then, it will allow a user to
 re-export to CSV, visualise and publicly publish the data.
 
-## Installation
+## Installation / Usage
 
-This repository includes a working copy of the database. If anybody wants to try
-self-hosting Donation Whistle, this helps them hit the ground running. However, if you
-prefer to start from scratch:
+For your convenience, Donation Whistle is packaged as a Docker image. You can run it as
+follows:
 
-1. Delete `donation-whistle.db` and the `migrations` directory
-2. Run `poetry shell` to make sure you're in the `poetry` virtual environment
-3. Run `flask db init`, `flask db migrate -m "Initial"` then `flask upgrade` to create a new
-   `donation-whistle.db` file
-4. Run Donation Whistle: `flask run`
+1. Clone this repository to your local machine
+2. Navigate to the new donation-whistle directory
+3. Run `docker-compose up -d`; Donation Whistle will by default run on `localhost:80`
 4. Go to the homepage (by default <http://localhost:5000/index>) and create the default
    admin account by going to *Login* on the top bar
 5. Log in with the username `admin` and the default password `changethispassword`
 6. Perform an initial download of the Electoral Commission's data by choosing *Data
    import* on the top bar; refresh the homepage to see the newly-imported records
-5. (Optionally) import an alias file, like the example provided in this repository, by
-   going to *Aliases* then *Import/export aliases*
-
-## Usage
-
-```
-poetry update
-poetry shell
-flask run donation_scraper.py
-
-```
+5. (Optionally) import an alias file, like the example
+   `donation_whistle_alias_export_2023-11-22.json` provided in this repository, by going
+   to *Aliases* then *Import/export aliases*
 
 ## Roadmap
 
@@ -54,7 +43,7 @@ flask run donation_scraper.py
 * [X] Alias import/export
 * [X] Add reported name to donor detail table
 * [X] Write tests
-* [ ] Dockerized
+* [X] Dockerized
 * [ ] Write and link to a blog post to explain why this project exists
 * [ ] Election view for the 12 months leading up to an election
 

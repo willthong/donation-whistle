@@ -1,6 +1,7 @@
 import csv
 import datetime as dt
 import dateutil.relativedelta as relativedelta
+import os
 import plotly.graph_objects as go
 import requests
 import werkzeug
@@ -55,7 +56,7 @@ DONOR_TYPE_COLOURS = {
     "Limited Liability Partnership": "seagreen",
     "Trade Union": "hotpink",
     "Unincorporated Association": "darkkhaki",
-    "Other": "black",
+    "Other": "white",
 }
 
 PARTY_COLOURS = {
@@ -87,6 +88,7 @@ PRETTY_FIELD_NAMES = {
     "amount": "Donation amount",
     "legacy": "Is legacy?",
 }
+
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
@@ -241,7 +243,7 @@ def recipient(id):
                 hovertemplate="£%{y:.4s}"
                 "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
                 marker_color=donor_type,
-                marker_line={"width":0},
+                marker_line={"width": 0},
                 showlegend=False,
             ),
         ],
@@ -308,7 +310,7 @@ def recipient(id):
                 hovertemplate="£%{x:.4s}<extra></extra>",
                 orientation="h",
                 marker_color=donor_type,
-                marker_line={"width":0},
+                marker_line={"width": 0},
             ),
         ],
         layout={
@@ -413,7 +415,7 @@ def donor(id):
                 y=parties[i],
                 hovertemplate="£%{y:.4s}",
                 marker_color=party_colour,
-                marker_line={"width":0},
+                marker_line={"width": 0},
             )
         )
 
@@ -482,6 +484,7 @@ def generate_date_series(start_date, end_date):
         start_date += relativedelta.relativedelta(months=1)
     return date_series
 
+
 @bp.route("/recipients")
 def recipients():
     # Generate dates
@@ -496,7 +499,7 @@ def recipients():
         OTHER_DONOR_TYPES, "donor_type_", Donor.donor_type_id
     )
 
-    # Monthly is the smallest useful aggregation, so it's most efficient to do (and cache) 
+    # Monthly is the smallest useful aggregation, so it's most efficient to do (and cache)
     # that aggregation on the server, with extra binning done by Plotly
     party_stats_query = (
         db.session.query(
@@ -730,7 +733,7 @@ def donors():
                 hovertemplate="£%{y:.4s}"
                 "<extra>First Gift: %{customdata[0]}<br>Latest Gift: %{customdata[1]}</extra>",
                 marker_color=donor_type,
-                marker_line={"width":0},
+                marker_line={"width": 0},
                 showlegend=False,
             ),
         ],
@@ -775,12 +778,12 @@ def donors():
 
 
 def create_default_admin():
-    user = User(username = "admin", email="admin@mailinator.com", is_admin=True)
+    user = User(username="admin", email="admin@mailinator.com", is_admin=True)
     user.set_password("changethispassword")
     db.session.add(user)
     db.session.commit()
     flash("Default admin user registered!")
-    
+
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -802,7 +805,9 @@ def login():
         next_page = request.args.get("next")
         # netloc protects against attacker inserting malicious URL in "next" argument by
         # ensuring it's a relative rather than absolute URL
-        if not next_page or werkzeug.urls.url_parse(next_page).netloc != "":  # pragma: no cover
+        if (
+            not next_page or werkzeug.urls.url_parse(next_page).netloc != ""
+        ):  # pragma: no cover
             next_page = url_for("main.index")
         return redirect(next_page)
     return render_template("login.html", title="Log in", form=form)
@@ -834,6 +839,7 @@ def register():
         return redirect(url_for("main.users"))
     return render_template("register.html", title="Register", form=form)
 
+
 @bp.route("/users", methods=["GET"])
 @login_required
 def users():
@@ -855,10 +861,10 @@ def delete_user(id):
     if current_user.is_authenticated and not current_user.is_admin:
         flash("Only admins can delete other users")
         return redirect(url_for("main.index"))
-    if current_user.check_last_admin():
+    user = db.get_or_404(User, id)
+    if current_user.check_last_admin() and current_user == user:
         flash("You are the last admin, so you can't delete your own account")
         return redirect(url_for("main.users"))
-    user = db.get_or_404(User, id)
     title = f"Delete user: {user.username}?"
     form = DeleteUserForm()
     if form.validate_on_submit():
@@ -872,20 +878,25 @@ def delete_user(id):
 @bp.route("/export", methods=["GET"])
 @login_required
 def export_data():  # pragma: no cover
-    """Export all donations. Query the API, turn it into JSON and send_file it"""
+    """Export all donations: query API, convert to JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
-    api_url = request.url_root[:-1] + url_for("api.data") + "?" + filter_string
+    api_url = "http://localhost:5000" + url_for("api.data") + "?" + filter_string
     data = requests.get(api_url).json()["data"]
     for record in data:
-        record["date"] = dt.datetime.strptime(record["date"], "%a, %d %b %Y %H:%M:%S %Z")
+        record["date"] = dt.datetime.strptime(
+            record["date"], "%a, %d %b %Y %H:%M:%S %Z"
+        )
         record["date"] = record["date"].strftime("%Y-%m-%d")
-    filename = "donation_whistle_export_" + dt.datetime.now().strftime("%Y-%m-%d") + ".csv"
+    filename = (
+        "donation_whistle_export_" + dt.datetime.now().strftime("%Y-%m-%d") + ".csv"
+    )
     with open("app/" + filename, "w") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=PRETTY_FIELD_NAMES.keys())
         writer.writerow(dict(PRETTY_FIELD_NAMES))
         for record in data:
             writer.writerow(record)
     return send_file(filename, as_attachment=True, mimetype="csv")
+
 
 @bp.route("/notifications")
 @login_required

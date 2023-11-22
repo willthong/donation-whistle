@@ -15,3 +15,8 @@ app/db_import/__pycache__/*
 cache/*
 .coverage
 .coverage/*
+db/donation-whistle.db
+migrations
+migrations/*
+migrations/versions
+migrations/versions/*

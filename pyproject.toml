@@ -9,7 +9,7 @@ authors = [
 repository = "https://github.com/willthong/donation-whistle"
 
 [tool.poetry.dependencies]
-python = "3.11.5"
+python = "3.11.6"
 email-validator = "^2.0.0"
 fakeredis = "^2.20.0"
 flask = "^2.3"
@@ -18,6 +18,8 @@ flask-login = "^0.6.2"
 flask-migrate = "^4.0.4"
 flask-sqlalchemy = "^3.0.5"
 flask-wtf = "^1.1.1"
+gevent = "^23.9.1"
+gunicorn = "^21.2.0"
 plotly = "^5.15.1"
 pytest = "^7.4.3"
 pytest-cov = "^4.1.0"
