@@ -17,6 +17,8 @@ follows:
 1. Clone this repository to your local machine
 2. Navigate to the new donation-whistle directory
 3. Run `docker-compose up -d`; Donation Whistle will by default run on `localhost:80`
+   (and if you want to change that, simply edit the port in `docker-compose.yaml` before
+   running this command)
 4. Go to the homepage (by default <http://localhost:5000/index>) and create the default
    admin account by going to *Login* on the top bar
 5. Log in with the username `admin` and the default password `changethispassword`

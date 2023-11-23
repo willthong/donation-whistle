@@ -2,7 +2,15 @@ import datetime as dt
 import json
 import os
 
-from flask import after_this_request, flash, redirect, request, render_template, send_file, url_for
+from flask import (
+    after_this_request,
+    flash,
+    redirect,
+    request,
+    render_template,
+    send_file,
+    url_for,
+)
 from flask_login import login_required
 
 from app import db, cache
@@ -121,7 +129,7 @@ def alias(id):
         alias.note = form.note.data or alias.note or None
         db.session.commit()
         flash("Alias updated!")
-    elif request.method == "GET": # pragma: no cover
+    elif request.method == "GET":  # pragma: no cover
         form.alias_name.data = alias.name
         form.note.data = alias.note
     return render_template("alias_detail.html", title=title, alias=alias, form=form)
@@ -201,12 +209,13 @@ def export_aliases():
         + ".json"
     )
     with open("app/" + filename, "w") as writer:
-        writer.write(export_data)    
+        writer.write(export_data)
 
     @after_this_request
     def remove_file(response):
         os.remove("app/" + filename)
         return response
+
     return send_file(filename, as_attachment=True, mimetype="json")
 
 
@@ -232,7 +241,8 @@ def import_aliases():
                     .scalars()
                     .first()
                 )
-                new_alias.donors.append(donor_record)
+                if donor_record is not None:
+                    new_alias.donors.append(donor_record)  # pragma: no cover
             db.session.add(new_alias)
         db.session.commit()
         cache.clear()

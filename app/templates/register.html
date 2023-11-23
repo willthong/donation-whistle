@@ -35,7 +35,12 @@
         <br>
         <div class="form-check">
           {{ form.is_admin(class_="form-check-input", type="checkbox", id="adminCheck") }}
-          <label class="form-check-label" for="adminCheck"> {{ form.is_admin.label }} </label>
+          <span data-bs-toggle="tooltip" data-bs-title="Allows the user to manage other
+            users and to perform database imports">
+            <label class="form-check-label" for="adminCheck"> 
+              {{ form.is_admin.label }} <b><sup>?</sup></b>
+            </label>
+          </span>
         </div>
         <br>
         {{ form.submit(class_="btn btn-primary w-100 py-2", type_="submit") }}
@@ -43,4 +48,15 @@
     </div>
     <div class="col"></div>
   </div>
+
+{% endblock %}
+
+{% block scripts %}
+  <script type="module">
+    // Tooltip activation
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(
+      tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl)
+    )
+  </script>
 {% endblock %}

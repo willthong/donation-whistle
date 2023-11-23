@@ -680,8 +680,6 @@ VIRGINIA HOUSE
             .join(Recipient)
             .join(Donor)
             .join(DonationType)
-            # .where(db.not_(db.or_(*donation_type_filter_statements)))
-            # .where(db.not_(db.or_(*donor_type_filter_statements)))
             .group_by("month", Recipient.name)
             .all()
         )
@@ -789,7 +787,6 @@ VIRGINIA HOUSE
             '{"data":[{"customdata":["Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party","Conservative Party"],"histfunc":"sum","hovertemplate":"'
             in response.text
         )
-        print(response.text)
         assert (
             'marker":{"color":"rgb(0, 135, 220)"},"name":"Conservative Party","x":["2019-11-01","2019-12-01","2020-01-01","2020-02-01","2020-03-01","2020-04-01","2020-05-01","2020-06-01","2020-07-01","2020-08-01","2020-09-01","2020-10-01","2020-11-01",'
             in response.text

@@ -1,8 +1,7 @@
 version: "3"
 services:
   main:
-    # image: willthong/donation-whistle:latest
-    image: donation-whistle
+    image: willthong/donation-whistle:latest
     volumes:
       - dw-db:/home/donation-whistle/db
     ports:
@@ -11,8 +10,7 @@ services:
       - DATABASE_URL=sqlite:////home/donation-whistle/db/donation-whistle.db
       - REDIS_URL=redis://redis:6379
   worker:
-    image: donation-whistle
-    # image: willthong/donation-whistle:latest
+    image: willthong/donation-whistle:latest
     entrypoint: poetry run rq worker donation-whistle-tasks
     environment:
       - DATABASE_URL=sqlite:////home/donation-whistle/db/donation-whistle.db
