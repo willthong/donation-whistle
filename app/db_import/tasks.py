@@ -92,7 +92,7 @@ def import_record(record):
         deregistered = None
 
     query = db.select(Recipient).filter_by(name=recipient_name)
-    if not db.session.execute(query).scalars().first():
+    if not db.session.execute(query).scalar():
         recipient = Recipient(name=recipient_name, deregistered=deregistered)
         db.session.add(recipient)
     else:
@@ -109,7 +109,7 @@ def import_record(record):
 
     # Donors and aliases
     query = db.select(Donor).filter_by(name=donor_name)
-    if db.session.execute(query).scalars().first():
+    if db.session.execute(query).scalar():
         donor = db.session.execute(query).scalars().first()  # pragma: no cover
     else:
         donor = Donor(
@@ -130,10 +130,10 @@ def import_record(record):
     date = datetime.strptime(date, "%d/%m/%Y")
 
     query = db.select(DonationType).filter_by(name=record["DonationType"])
-    donation_type_id = db.session.execute(query).scalars().first().id
+    donation_type_id = db.session.execute(query).scalar().id
 
     query = db.select(Donation).filter_by(ec_ref=ec_ref)
-    if not db.session.execute(query).scalars().first():
+    if not db.session.execute(query).scalar():
         new_donation = Donation(
             recipient=recipient,
             donor=donor,
@@ -168,7 +168,7 @@ def add_missing_entries(field):
     type_list = select_type_list(field)
     for item in type_list:
         query = db.select(field).filter_by(name=item)
-        if not db.session.execute(query).scalars().first():  # pragma: no cover
+        if not db.session.execute(query).scalar():  # pragma: no cover
             db.session.add(field(name=item))
 
 

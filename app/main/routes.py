@@ -880,7 +880,12 @@ def delete_user(id):
 def export_data():  # pragma: no cover
     """Export all donations: query API, convert to JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
-    api_url = "http://localhost:5000" + url_for("api.data") + "?" + filter_string
+    api_url = (
+        request.headers.get("X-Forwarded-Host", "localhost")
+        + url_for("api.data")
+        + "?"
+        + filter_string
+    )
     data = requests.get(api_url).json()["data"]
     for record in data:
         record["date"] = dt.datetime.strptime(
