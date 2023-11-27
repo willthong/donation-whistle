@@ -11,9 +11,7 @@ from app.db_import.forms import DBImport
 
 def last_download():
     """Finds last downloaded date"""
-    raw_data_file = glob.glob(
-        "raw_data_*.csv", root_dir=current_app.config["RAW_DATA_LOCATION"]
-    )
+    raw_data_file = glob.glob("raw_data_*.csv")
     try:
         last_download = re.findall(r"\d{4}\-\d{2}\-\d{2}", raw_data_file[0])
         last_download = datetime.strptime(last_download[0], "%Y-%m-%d")
