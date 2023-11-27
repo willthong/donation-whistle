@@ -122,7 +122,9 @@ def import_record(record):
         new_alias = DonorAlias(name=donor_name)
         new_alias.donors.append(donor)
         db.session.add(new_alias)
-    db.session.commit()
+        db.session.commit()
+        db.session.add(donor)
+        db.session.commit()
 
     # Donation
     ec_ref = record["\ufeffECRef"]
