@@ -153,7 +153,7 @@ def download_raw_data():  # pragma: no cover
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    filename = "raw_data_" + str(date.today()) + ".csv"
+    filename = "./db/raw_data_" + str(date.today()) + ".csv"
     urllib.request.urlretrieve(URL, filename)
     return filename
 
@@ -201,9 +201,7 @@ def db_import():
     try:
         _set_task_progress(0)
         if current_app.config["TESTING"]:
-            downloaded_data = (
-                current_app.config["RAW_DATA_LOCATION"] + "raw_data_2023-01-01.csv"
-            )
+            downloaded_data = "./db/raw_data_2023-01-01.csv"
         else:
             # A fudge. Calling 2 methods from routes, one after another, was bad because it
             # would require the route to know when download_raw_data was finished. Putting both
