@@ -1,6 +1,6 @@
 version: "3"
 services:
-  main:
+  donation-whistle:
     image: willthong/donation-whistle:latest
     volumes:
       - dw-db:/home/donation-whistle/db
