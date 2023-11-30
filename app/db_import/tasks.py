@@ -201,7 +201,7 @@ def db_import():
     try:
         _set_task_progress(0)
         if current_app.config["TESTING"]:
-            downloaded_data = "./db/raw_data_2023-01-01.csv"
+            downloaded_data = "./tests/raw_data_2023-01-01.csv"
         else:
             # A fudge. Calling 2 methods from routes, one after another, was bad because it
             # would require the route to know when download_raw_data was finished. Putting both

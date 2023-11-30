@@ -10,7 +10,7 @@ from app.models import (
     Recipient,
     DonationType,
 )
-from app.main.routes import populate_filter_statements, OTHER_DONATION_TYPES
+from app.main.routes import populate_filter_statements, OTHER_DONATION_TYPES, OTHER_DONOR_TYPES
 from app.api import bp
 
 CRIT_LOOKUPS = {
@@ -50,9 +50,14 @@ def data():
 
     for filter in all_filters:
         if filter.startswith("recipient"): recipient_filters.append(filter)
-        if filter.startswith("donor_type"): donor_type_filters.append(filter)
-        if filter.startswith("donation_type"): donation_type_filters.append(filter)
-        if filter == "donation_type_other": donation_type_filters.extend(OTHER_DONATION_TYPES)
+        if filter == "donor_type_other": 
+            donor_type_filters.extend(OTHER_DONOR_TYPES)
+        elif filter.startswith("donor_type"): 
+            donor_type_filters.append(filter)
+        if filter == "donation_type_other":
+            donation_type_filters.extend(OTHER_DONATION_TYPES)
+        elif filter.startswith("donation_type"): 
+            donation_type_filters.append(filter)
         if filter.startswith("is_legacy"): is_legacy_filters.append(filter)
         if filter.startswith("donor_alias"): donor_alias_filters.append(filter)
         if filter.startswith("date_gt_"):
