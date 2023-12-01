@@ -879,11 +879,13 @@ def export_data():  # pragma: no cover
     """Export all donations: query API, convert to JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
     api_url = (
-        request.headers.get("X-Forwarded-Host", "localhost")
+        "http://"
+        + request.headers.get("Host", "localhost")
         + url_for("api.data")
         + "?"
         + filter_string
     )
+    print(api_url)
     data = requests.get(api_url).json()["data"]
     for record in data:
         record["date"] = dt.datetime.strptime(
