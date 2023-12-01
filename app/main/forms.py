@@ -56,6 +56,7 @@ class FilterForm(FlaskForm):
     donation_type_cash = BooleanField("Cash")
     donation_type_non_cash = BooleanField("Non Cash")
     donation_type_visit = BooleanField("Visit")
+    donation_type_exempt_trust = BooleanField("Exempt Trust")
     donation_type_other = BooleanField("Other")
     is_legacy_true = BooleanField("Legacy")
     is_legacy_false = BooleanField("In vitro")

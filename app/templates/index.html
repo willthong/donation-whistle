@@ -54,8 +54,8 @@
         {{ form.donor_type_friendly_society.label }} <br>
         {{ form.donor_type_other(class_="form-check-input") }}
         <span data-bs-toggle="tooltip" data-bs-title="Disabled by default. Comprises
-          mostly mis-categorised donations such as building societies, public funds, impermissible   
-          donors, unidentifiable donors and 'N/A'">
+          public funds (not gifts so much as statutory obligations) and impermissible
+          donors. Learn more at Will Thong's blog: willthong.com/donation-whistle.html.">
           {{ form.donor_type_other.label }}<b><sup>?</sup></b>
         </span> <br>
       </div>
@@ -71,13 +71,16 @@
           {{ form.donation_type_non_cash.label }}<b><sup>?</sup></b>
         </span> <br>
         {{ form.donation_type_visit(class_="form-check-input") }} {{ form.donation_type_visit.label }} <br>
+        {{ form.donation_type_exempt_trust(class_="form-check-input") }} 
+        <span data-bs-toggle="tooltip" data-bs-title="Defined in the Political Parties, Elections and 
+          Referendums Act 2000 s162 as trusts which were either created pre-1999 or set up 
+          by a permissible donor known to the recipient.">
+          {{ form.donation_type_exempt_trust.label }}<b><sup>?</sup></b></span> <br>
         {{ form.donation_type_other(class_="form-check-input") }} 
         <span data-bs-toggle="tooltip" data-bs-title="Disabled by default. Comprises public funds (not 
-          gifts so much as statutory obligations); impermissible & unidentified donors (these gifts are
-          returned so don't really count); and exempt trusts (mostly legacy donations). TODO: link 
-          to explanatory blog post.">
-          {{ form.donation_type_other.label }}<b><sup>?</sup></b>
-        </span> <br>
+          gifts so much as statutory obligations) and impermissible donations (these gifts are returned 
+          so don't really count). Learn more at Will Thong's blog: willthong.com/donation-whistle.html.">
+          {{ form.donation_type_other.label }}<b><sup>?</sup></b> </span> <br>
       </div>
       <div class="filter-box">
         <strong>Dates</strong><br>

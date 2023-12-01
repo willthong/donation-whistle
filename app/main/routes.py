@@ -41,14 +41,12 @@ OTHER_DONOR_TYPES = [
 ]
 OTHER_DONATION_TYPES = [
     "donation_type_public_funds",
-    "donation_type_exempt_trust",
-    "donation_type_permissible_donor_exempt_trust",
     "donation_type_impermissible_donor",
     "donation_type_unidentified_donor",
 ]
-DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
+DEFAULT_FILTERS = "filter=recipient_labour_party&filter=recipient_conservative_and_unionist_party&filter=recipient_liberal_democrats&filter=recipient_scottish_national_party_snp&filter=recipient_green_party&filter=recipient_reform_uk&filter=recipient_other&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit&filter=donation_type_exempt_trust"
 
-DEFAULT_FILTERS_NO_RECIPIENTS = "&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit"
+DEFAULT_FILTERS_NO_RECIPIENTS = "&filter=is_legacy_true&filter=is_legacy_false&filter=donor_type_individual&filter=donor_type_company&filter=donor_type_limited_liability_partnership&filter=donor_type_trade_union&filter=donor_type_unincorporated_association&filter=donor_type_trust&filter=donor_type_friendly_society&filter=donation_type_cash&filter=donation_type_non_cash&filter=donation_type_visit&filter=donation_type_exempt_trust"
 
 DONOR_TYPE_COLOURS = {
     "Individual": "indigo",

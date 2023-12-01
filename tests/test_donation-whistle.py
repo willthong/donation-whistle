@@ -384,7 +384,7 @@ VIRGINIA HOUSE
         assert len(return_data) == 1
         assert return_data[0]["electoral_commission_donation_id"] == "NC0417015"
 
-        response = self.client.get("/api/data?filter=donation_type_other")
+        response = self.client.get("/api/data?filter=donation_type_exempt_trust")
         return_data = json.loads(response.text)["data"]
         assert len(return_data) == 1
         assert return_data[0]["electoral_commission_donation_id"] == "ET0551995"
@@ -612,28 +612,28 @@ VIRGINIA HOUSE
 
         donor_type, relevant_types = main.assign_colours_to_donor_types(query, 1)
         assert donor_type == [
-            'slateblue', 
-            'indigo', 
-            'black',
-            'indigo',
-            'slateblue',
-            'slateblue',
-            'indigo',
-            'indigo',
-            'slateblue',
-            'slateblue',
-            'indigo',
-            'indigo',
-            'hotpink',
-            'hotpink',
-            'hotpink'
+            "slateblue",
+            "indigo",
+            "black",
+            "indigo",
+            "slateblue",
+            "slateblue",
+            "indigo",
+            "indigo",
+            "slateblue",
+            "slateblue",
+            "indigo",
+            "indigo",
+            "hotpink",
+            "hotpink",
+            "hotpink",
         ]
         assert relevant_types == {
-            'Company': 'slateblue', 
-            'Individual': 'indigo',
-            'Other': 'black',
-            'Trade Union': 'hotpink'
-        } 
+            "Company": "slateblue",
+            "Individual": "indigo",
+            "Other": "black",
+            "Trade Union": "hotpink",
+        }
 
     def test_recipient_page(self):
         self.db_import()

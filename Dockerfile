@@ -13,7 +13,6 @@ ENV FLASK_APP donation-whistle.py
 
 COPY config.py donation-whistle.py main-boot.sh ./
 COPY app app
-COPY static static
 RUN mkdir cache && mkdir db
 
 RUN chown -R donation-whistle:donation-whistle ./ \ 

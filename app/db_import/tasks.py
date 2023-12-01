@@ -33,7 +33,6 @@ DONATION_TYPES = [
     "Visit",
     "Public Funds",
     "Exempt Trust",
-    "Permissible Donor Exempt Trust",
     "Impermissible Donor",
     "Unidentified Donor",
 ]
@@ -131,7 +130,10 @@ def import_record(record):
     date = record["ReceivedDate"] or record["AcceptedDate"]
     date = datetime.strptime(date, "%d/%m/%Y")
 
-    query = db.select(DonationType).filter_by(name=record["DonationType"])
+    if record["DonationType"] == "Permissible Donor Exempt Trust":
+        query = db.select(DonationType).filter_by(name="Exempt Trust")
+    else:
+        query = db.select(DonationType).filter_by(name=record["DonationType"])
     donation_type_id = db.session.execute(query).scalar().id
 
     query = db.select(Donation).filter_by(ec_ref=ec_ref)
