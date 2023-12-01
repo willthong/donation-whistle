@@ -94,6 +94,7 @@ def import_record(record):
     if not db.session.execute(query).scalar():
         recipient = Recipient(name=recipient_name, deregistered=deregistered)
         db.session.add(recipient)
+        db.session.commit()
     else:
         recipient = db.session.execute(query).scalars().first()
 
@@ -148,6 +149,7 @@ def import_record(record):
             is_legacy=record["IsBequest"] == "True",
         )
         db.session.add(new_donation)
+        db.session.commit()
 
 
 def download_raw_data():  # pragma: no cover
