@@ -874,7 +874,6 @@ def delete_user(id):
 
 
 @bp.route("/export", methods=["GET"])
-@login_required
 def export_data():  # pragma: no cover
     """Export all donations: query API, convert to JSON and send_file it"""
     filter_string = request.query_string.decode() or DEFAULT_FILTERS
