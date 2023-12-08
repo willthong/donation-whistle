@@ -9,7 +9,7 @@ Electoral Commission makes this important public data available: that it does no
 consolidate aliases, and that it double-reports donations. Then, it will allow a user to
 re-export to CSV, visualise and publicly publish the data.
 
-Read more about Donation Whistle at [my blog](willthong.com/donation-whistle.html).
+Read more about Donation Whistle at [my blog](https://www.willthong.com/donation-whistle.html).
 There is also a video tour which you can watch below.
 
 [![Donation Whistle Video Tour](https://img.youtube.com/vi/ucK58NF6xSs/maxresdefault.jpg)](https://youtu.be/ucK58NF6xSs)
@@ -82,7 +82,7 @@ started:
 * [X] Add reported name to donor detail table
 * [X] Write tests
 * [X] Dockerized
-* [ ] Write and link to a blog post to explain why this project exists
+* [X] Write and link to a blog post to explain why this project exists
 * [ ] Election view for the 12 months leading up to an election
 
 ## Contributing
