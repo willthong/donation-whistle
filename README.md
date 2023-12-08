@@ -1,4 +1,4 @@
-# Donation Whistle
+# Donation Whistle 💷🧹📊
 
 A Python application to retrieve, clean and visualise data from the UK Electoral
 Commission's [register of donations to political
@@ -14,7 +14,7 @@ There is also a video tour which you can watch below.
 
 [![Donation Whistle Video Tour](https://img.youtube.com/vi/ucK58NF6xSs/maxresdefault.jpg)](https://youtu.be/ucK58NF6xSs)
 
-## Installation
+## Installation ⚙️
 
 For your convenience, Donation Whistle is packaged as a Docker image.
 
@@ -29,15 +29,15 @@ generate a reverse proxy so that the appropriate host address you control (eg
 container on your server. You will need to set up DNS so that the address points to your
 server (see eg
 [here](https://www.namecheap.com/support/knowledgebase/article.aspx/319/2237/how-can-i-set-up-an-a-address-record-for-my-domain/)
-for how to do so if Namecheap is your hosting providor). Then follow these steps to get
+for how to do so if Namecheap is your hosting provider). Then follow these steps to get
 the container working:
 
 1. Download `docker-compose.prod.yaml` to your server
 2. Edit the LETSENCRYPT_HOST and VIRTUAL_HOST variables so they both match your host
    address (the web address you expect your Donation Whistle instance to be accessed
    through, eg `donationwhistle.willthong.com`)
-3. Create a file called `.env.prod.proxy-companion` in the samme directory as
-   `docker-compose.prod.yaml`; it should contain these lines:
+3. Create a file called `.env.prod.proxy-companion` in the same directory as
+   `docker-compose.prod.yaml`, containing these lines:
 
 ```
 DEFAULT_EMAIL=[your email address]
@@ -48,7 +48,7 @@ NGINX_PROXY_CONTAINER=nginx-proxy
    docker-compose.prod.yaml up -d`; Donation Whistle should then be accessible via your
    host address
 
-## Getting started
+## Getting started ▶️
 
 Whether you're running a testing or production server, follow these steps to get
 started:
@@ -64,7 +64,7 @@ started:
    `donation_whistle_alias_export_2023-11-22.json` provided in this repository, by going
    to *Aliases* then *Import/export aliases*
 
-## Roadmap
+## Roadmap 🗺️
 
 * [x] Download raw data and save as CSV
 * [x] Fix line break errors
@@ -85,11 +85,11 @@ started:
 * [X] Write and link to a blog post to explain why this project exists
 * [ ] Election view for the 12 months leading up to an election
 
-## Contributing
+## Contributing 💻
 
 Pull requests are welcome. For major changes, please open an issue first
 to discuss what you would like to change.
 
-## License
+## License 📄
 
 [MIT](https://choosealicense.com/licenses/mit/)
