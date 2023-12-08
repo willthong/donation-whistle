@@ -103,9 +103,7 @@ class TestWebApp(unittest.TestCase):
     def test_index(self):
         response = self.client.get("/index")
         assert response.status_code == 200
-        assert "<h1>All donations</h1>" in response.text
-        assert 'form action="/"' in response.text
-        assert 'div id="table"' in response.text
+        assert "No records - Donation Whistle" in response.text
 
     def test_register_user_not_logged_in(self):
         response = self.client.post("/register")
@@ -464,7 +462,7 @@ VIRGINIA HOUSE
         )
         assert (
             """<a href="/alias/16">Unite the Union</a>,
-          which refers to:</li>"""
+            which refers to:</li>"""
             in response.text
         )
         response = self.client.get("/alias/16")
@@ -805,3 +803,11 @@ VIRGINIA HOUSE
                 '{"data":{"progress":42,"task_id":12345},"name":"task_progress","timestamp":'
                 in response.text
             )
+
+    def test_alias_check(self):
+        self.db_import()
+        response = self.client.get("recipient/1")
+        assert "Set up aliases (see navigation bar above), otherwise" in response.text
+        self.logout()
+        response = self.client.get("recipient/1")
+        assert "An administrator needs to set up aliases, otherwise" in response.text

@@ -1,7 +1,7 @@
 import csv
 import datetime as dt
 import dateutil.relativedelta as relativedelta
-import os
+import functools 
 import plotly.graph_objects as go
 import requests
 import werkzeug
@@ -94,9 +94,24 @@ class LoginForm(FlaskForm):
     remember_me = BooleanField("Remember me")
     submit = SubmitField("Sign In")
 
+def check_donation_records(func):
+    @functools.wraps(func)
+    def decorated_function(*args, **kwargs):
+        if db.session.execute(db.select(Donation)).all() == []:
+            return render_template("no_records.html", title="No records")
+        return func(*args, **kwargs)
+    return decorated_function
+
+def alias_check():
+    donor_number = len(db.session.execute(db.select(Donor)).scalars().all())
+    alias_number = len(db.session.execute(db.select(DonorAlias)).all())
+    return donor_number == alias_number
+
+            
 
 @bp.route("/", methods=["GET", "POST"])
 @bp.route("/index", methods=["GET", "POST"])
+@check_donation_records
 def index():
     form = FilterForm()
 
@@ -335,6 +350,15 @@ def recipient(id):
     filter_list += recipient.name.lower().replace(" ", "_")
     filter_list += DEFAULT_FILTERS_NO_RECIPIENTS
 
+    if alias_check() and current_user.is_authenticated: # pragma no cover
+        flash("""
+Set up aliases (see navigation bar above), otherwise the figures on this page will be misleading
+        """)
+    elif alias_check(): # pragma no cover
+        flash("""
+An administrator needs to set up aliases, otherwise the figures on this page will be misleading
+        """)
+
     return render_template(
         "recipient.html",
         title=title,
@@ -482,8 +506,8 @@ def generate_date_series(start_date, end_date):
         start_date += relativedelta.relativedelta(months=1)
     return date_series
 
-
 @bp.route("/recipients")
+@check_donation_records
 def recipients():
     # Generate dates
     start_date = db.session.query(db.func.min(Donation.date)).first()[0].replace(day=1)
@@ -689,6 +713,7 @@ def recipients():
 
 
 @bp.route("/donors")
+@check_donation_records
 def donors():
     donation_type_filter_statements = populate_filter_statements(
         OTHER_DONATION_TYPES, "donation_type_", DonationType.name
@@ -766,6 +791,15 @@ def donors():
                 marker={"size": 80},
             ),
         )
+
+    if alias_check() and current_user.is_authenticated:
+        flash("""
+Set up aliases (see navigation bar above), otherwise the figures on this page will be misleading
+        """)
+    elif alias_check(): # pragma no cover
+        flash("""
+An administrator needs to set up aliases, otherwise the figures on this page will be misleading
+        """)
 
     return render_template(
         "donors.html",

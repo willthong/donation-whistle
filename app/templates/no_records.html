@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block head %}
+  {{ super() }}
+{% endblock %}
+
+{% block app_content %}
+  <h1>
+    No records
+  </h1>
+  <p>
+    Donation Whistle has not yet had any donation records imported from the Electoral
+    Commission website.
+    {% if current_user.is_admin %}
+      Please click <a href="{{ url_for('db_import.dl_and_import') }}">data import</a> 
+      to import records.
+    {% else %}
+      Please contact an administrator to import data.
+    {% endif %}
+
+{% endblock %}
+
+
+

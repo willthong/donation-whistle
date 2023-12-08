@@ -50,11 +50,11 @@ def data():
 
     for filter in all_filters:
         if filter.startswith("recipient"): recipient_filters.append(filter)
-        if filter == "donor_type_other": 
+        if filter == "donor_type_other": #pragma no cover
             donor_type_filters.extend(OTHER_DONOR_TYPES)
         elif filter.startswith("donor_type"): 
             donor_type_filters.append(filter)
-        if filter == "donation_type_other":
+        if filter == "donation_type_other": #pragma no cover
             donation_type_filters.extend(OTHER_DONATION_TYPES)
         elif filter.startswith("donation_type"): 
             donation_type_filters.append(filter)

@@ -31,7 +31,7 @@ def create_app(config_class=Config):
 
     # Apply ProxyFix middleware so the app sees the correct request IP address rather
     # than the internal Gunicorn server's address
-    if "LETSENCRYPT_HOST" in app.config:
+    if "LETSENCRYPT_HOST" in app.config: #pragma no cover
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     cache.init_app(app)

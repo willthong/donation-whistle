@@ -1,4 +1,5 @@
 import datetime as dt
+import functools
 import json
 import os
 
@@ -16,10 +17,12 @@ from flask_login import login_required
 from app import db, cache
 from app.alias import bp
 from app.alias.forms import DeleteAlias, NewAliasName, UpdateAlias, JSONForm
+from app.main.routes import check_donation_records
 from app.models import Donor, DonorAlias
 
 
 @bp.route("/aliases", methods=["GET"])
+@check_donation_records
 def aliases():
     query = (
         db.select(DonorAlias)
