@@ -107,6 +107,9 @@ def import_record(record):
     if db.session.execute(query).scalar():
         donor = db.session.execute(query).scalars().first()  # pragma: no cover
     else:
+        new_alias = DonorAlias(name=donor_name)
+        db.session.add(new_alias)
+        db.session.commit()
         donor = Donor(
             name=donor_name,
             ec_donor_id=record["DonorId"],
@@ -114,10 +117,7 @@ def import_record(record):
             company_registration_number=record["CompanyRegistrationNumber"],
             donor_type_id=record["DonorStatus"],
         )
-        new_alias = DonorAlias(name=donor_name)
         new_alias.donors.append(donor)
-        db.session.add(new_alias)
-        db.session.commit()
         db.session.add(donor)
         db.session.commit()
 
