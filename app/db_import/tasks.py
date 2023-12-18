@@ -55,18 +55,6 @@ DONOR_TYPES = [
 ]
 
 
-def relevancy_check(record):
-    """Returns True if a record is relevant, or False if not"""
-    if (
-        record["AccountingUnitName"] != "Central Party"
-        or record["DonorStatus"] in ["Unidentifiable Donor"]
-        or record["DonationAction"] in ["Returned", "Forfeited"]
-        or re.search(r"(referendum)|(election)|(poll)", record["ReportingPeriodName"])
-    ):
-        return False
-    return True
-
-
 def remove_line_breaks(row):
     """Removes lines that contain line breaks within cells"""
     for field in row:
@@ -77,7 +65,14 @@ def remove_line_breaks(row):
 
 
 def import_record(record):
-    if not relevancy_check(record):
+    if (
+        record["AccountingUnitName"] != "Central Party"
+        or record["DonorStatus"] in ["Unidentifiable Donor"]
+        or record["DonationAction"] in ["Returned", "Forfeited"]
+        or "referendum" in record["ReportingPeriodName"].lower()
+        or "election" in record["ReportingPeriodName"].lower()
+        or "poll" in record["ReportingPeriodName"].lower()
+    ):
         return
     record = remove_line_breaks(record)
 
@@ -224,7 +219,7 @@ def db_import():
             for index, record in enumerate(reader):
                 import_record(record)
                 # Initially tried reporting progress every time, but this caused a
-                # 'prepared state' SQLAlchemy error, possibly because the
+                # 'prepared state' SQLAlchemy error
                 if index % 1000 == 0:
                     # Fake percentage function
                     _set_task_progress(round(((index / total_records * 85)) + 15))
