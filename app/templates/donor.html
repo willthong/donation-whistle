@@ -75,6 +75,9 @@
       if (recipientName == 'UK Independence Party (UKIP)') {var printName = 'UKIP';}
       if (recipientName == 'Scottish National Party (SNP)') {var printName = 'SNP';}
       return html(`<a href='{{ url_for("main.recipient_dummy") }}/${recipientId}${filterAddons}'> ${printName} </a>`);
+      }
+    const ecLinkFormatter = (ecId) => {
+      return html(`<a href='https://search.electoralcommission.org.uk/English/Donations/${ecId}'> Link </a>`);
     }
 
     new Grid({
@@ -82,7 +85,7 @@
         { id: 'recipient', 
           sort: false,
           name: 'Recipient', 
-          formatter: (_, row) => recipientFormatter(row.cells[0].data, row.cells[6].data) 
+          formatter: (_, row) => recipientFormatter(row.cells[0].data, row.cells[7].data) 
         },
         { id: 'date', name: 'Date', formatter: (cell) => dateFormatter(cell) },
         { id: 'type', name: 'Donation Type', sort: false, },
@@ -96,7 +99,13 @@
           }
         },
         { id: 'original_donor_name', name: "Reported name", sort: true },
+        { id: 'ec_record', 
+          sort: false,
+          name: 'EC Record', 
+          formatter: (_, row) => ecLinkFormatter(row.cells[8].data) 
+        },
         { id: 'recipient_id', hidden: true },
+        { id: 'electoral_commission_donation_id', hidden: true },
       ],
       server: {
         url: '/api/data?filter=donor_alias_{{ alias.id }}',
