@@ -153,6 +153,9 @@ def download_raw_data():  # pragma: no cover
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     filename = "./db/raw_data_" + str(date.today()) + ".csv"
+    opener = urllib.request.build_opener()
+    opener.addheaders = [("User-agent", "Mozilla/5.0")]
+    urllib.request.install_opener(opener)
     urllib.request.urlretrieve(URL, filename)
     return filename
 
